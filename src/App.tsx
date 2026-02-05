@@ -1,0 +1,74 @@
+import { useState } from 'react';
+import { Layout } from './components/Layout';
+import { ProfessorsPage } from './pages/ProfessorsPage';
+import { GridView } from './pages/GridPage';
+import { GeneratorPage } from './pages/GeneratorPage';
+import { SetupPage } from './pages/SetupPage';
+import { CurriculumPage } from './pages/CurriculumPage';
+import { useStore } from './store';
+
+function App() {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const { subjects, addSubject } = useStore();
+  const [newSubject, setNewSubject] = useState('');
+
+  const handleAddSubject = () => {
+    if (newSubject) {
+      addSubject(newSubject);
+      setNewSubject('');
+    }
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <GridView />;
+      case 'professors':
+        return <ProfessorsPage />;
+      case 'subjects':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-800">Disciplinas</h2>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+              <h3 className="font-semibold mb-4">Adicionar Nova Disciplina</h3>
+              <div className="flex gap-4">
+                <input
+                  value={newSubject}
+                  onChange={e => setNewSubject(e.target.value)}
+                  className="flex-1 border p-2 rounded-lg"
+                  placeholder="Nome da Disciplina (Ex: Matemática)"
+                />
+                <button onClick={handleAddSubject} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Adicionar</button>
+              </div>
+              <div className="mt-8 flex flex-wrap gap-2">
+                {subjects.map(s => (
+                  <div key={s.id} className="bg-slate-100 px-4 py-2 rounded-lg text-slate-700 font-medium border border-slate-200">
+                    {s.name}
+                  </div>
+                ))}
+                {subjects.length === 0 && <p className="text-slate-400">Nenhuma disciplina cadastrada.</p>}
+              </div>
+            </div>
+          </div>
+        );
+      case 'classes':
+        return <div className="p-12 text-center text-slate-400">Gerenciamento de Turmas (Use o Dashboard para criar e visualizar)</div>;
+      case 'generate':
+        return <GeneratorPage />;
+      case 'curriculum':
+        return <CurriculumPage />;
+      case 'setup':
+        return <SetupPage />;
+      default:
+        return <div className="p-12 text-center text-slate-400">Em desenvolvimento...</div>;
+    }
+  };
+
+  return (
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+      {renderContent()}
+    </Layout>
+  );
+}
+
+export default App;

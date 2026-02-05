@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  font-family: 'Outfit', sans-serif;
+}
+
+@theme {
+  --color-brand-primary: #6366f1;
+  /* Indigo 500 */
+  --color-brand-secondary: #8b5cf6;
+  /* Violet 500 */
+  --color-dark-bg: #0f172a;
+  /* Slate 900 */
+  --color-card-bg: rgba(255, 255, 255, 0.8);
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased selection:bg-indigo-500 selection:text-white;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(20, 184, 166, 0.1) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl;
+}
+
+.glass-card {
+  @apply bg-white/60 backdrop-blur-md border border-white/40 shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl;
+}
+
+.glass-sidebar {
+  @apply bg-slate-900/95 backdrop-blur-xl border-r border-white/5;
+}
+
+@media print {
+
+  /* Esconder elementos de UI */
+  aside,
+  button,
+  .lucide,
+  input,
+  select {
+    display: none !important;
+  }
+
+  /* Ajustar layout principal */
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  /* Garantir que cards de grade fiquem visíveis */
+  .glass-card {
+    background: white !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  /* Cores de texto para impressão */
+  * {
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ajustar Grid */
+  .grid {
+    display: grid !important;
+  }
+}

@@ -126,7 +126,11 @@ export const ProfessorsPage = () => {
                             <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xl shadow-inner">
                                 {prof.name.charAt(0)}
                             </div>
-                            <button className="text-slate-300 hover:text-red-500 transition-colors bg-white p-2 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all">
+                            <button
+                                title="Excluir professor"
+                                aria-label="Excluir professor"
+                                className="text-slate-300 hover:text-red-500 transition-colors bg-white p-2 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all"
+                            >
                                 <Trash2 size={18} />
                             </button>
                         </div>

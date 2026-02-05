@@ -29,6 +29,8 @@ export const CurriculumPage = () => {
                         value={selectedClassId || ''}
                         onChange={(e) => setSelectedClassId(e.target.value)}
                         className="bg-transparent py-2.5 pr-8 pl-2 font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded-xl transition-colors min-w-[200px]"
+                        aria-label="Selecionar turma"
+                        title="Selecionar turma"
                     >
                         {classGroups.map(c => (
                             <option key={c.id} value={c.id}>{c.name}</option>
@@ -78,6 +80,8 @@ export const CurriculumPage = () => {
                                             onClick={() => currentClass && updateClassSubjectConfig(currentClass.id, subject.id, Math.max(0, count - 1))}
                                             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"
                                             disabled={count === 0}
+                                            aria-label={`Diminuir aulas de ${subject.name}`}
+                                            title={`Diminuir aulas de ${subject.name}`}
                                         >
                                             <Minus size={16} />
                                         </button>
@@ -89,6 +93,8 @@ export const CurriculumPage = () => {
                                         <button
                                             onClick={() => currentClass && updateClassSubjectConfig(currentClass.id, subject.id, count + 1)}
                                             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"
+                                            aria-label={`Aumentar aulas de ${subject.name}`}
+                                            title={`Aumentar aulas de ${subject.name}`}
                                         >
                                             <Plus size={16} />
                                         </button>

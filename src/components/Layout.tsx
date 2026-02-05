@@ -50,6 +50,8 @@ export const Layout = ({ children, activeTab, setActiveTab }: LayoutProps) => {
                     <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+                        aria-label="Toggle sidebar"
+                        title="Toggle sidebar"
                     >
                         <Menu size={20} />
                     </button>

@@ -116,6 +116,7 @@ export const GridView = () => {
                     <div className="flex gap-4 items-center bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm">
                         <div className="relative group">
                             <select
+                                aria-label="Selecionar Turma"
                                 className="appearance-none bg-transparent pl-4 pr-10 py-2.5 rounded-xl font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 transition-colors w-48"
                                 value={selectedClassId || ''}
                                 onChange={(e) => setSelectedClassId(e.target.value)}
@@ -136,7 +137,12 @@ export const GridView = () => {
                                 className="w-32 bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 p-2 rounded-lg text-sm text-center outline-none transition-all"
                                 placeholder="Nova Turma..."
                             />
-                            <button onClick={handleCreateClass} className="bg-slate-800 text-white p-2 rounded-lg hover:bg-black transition-colors">
+                            <button
+                                onClick={handleCreateClass}
+                                className="bg-slate-800 text-white p-2 rounded-lg hover:bg-black transition-colors"
+                                title="Criar Nova Turma"
+                                aria-label="Criar Nova Turma"
+                            >
                                 <Plus size={18} />
                             </button>
                         </div>

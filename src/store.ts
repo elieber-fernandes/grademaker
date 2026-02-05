@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import type { Professor, Subject, ClassGroup, Schedule, TimeSlot } from './types';
 
-// We don't have uuid installed, let's use a simple random string generator for now to avoid extra dependencies if possible,
-// or just install it. For now, a helper function.
+// Não temos o uuid instalado, vamos usar um gerador de string aleatória simples por enquanto para evitar dependências extras,
+// ou apenas instalá-lo. Por enquanto, uma função auxiliar.
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -18,7 +18,7 @@ interface AppState {
     addClassGroup: (name: string) => void;
     updateClassSubjectConfig: (classId: string, subjectId: string, count: number) => void;
 
-    // Schedule Actions
+    // Ações de Agendamento
     setSchedule: (schedule: Schedule) => void;
     moveLesson: (lessonId: string, newTime: TimeSlot) => void;
     importBatch: (data: { subjects?: string[], classGroups?: string[], professors?: string[] }) => void;
@@ -53,23 +53,31 @@ export const useStore = create<AppState>((set) => ({
         const currentProfessors = [...state.professors];
         const currentClasses = [...state.classGroups];
 
-        // Process Classes
+        // Processar Turmas
         classes.forEach(clsName => {
             if (!currentClasses.find(c => c.name === clsName)) {
                 currentClasses.push({ id: generateId(), name: clsName, gradeConfig: {} });
             }
         });
 
-        // Process Pairs
-        pairs.forEach(({ professorName, subjectName }) => {
-            // 1. Ensure Subject Exists
-            let subjectId = currentSubjects.find(s => s.name.toLowerCase() === subjectName.toLowerCase())?.id;
-            if (!subjectId) {
-                subjectId = generateId();
-                currentSubjects.push({ id: subjectId, name: subjectName });
+        // Passo 1: Coletar TODAS as disciplinas únicas primeiro (excluindo 'Todas')
+        const uniqueSubjects = new Set<string>();
+        pairs.forEach(p => {
+            if (p.subjectName.toLowerCase() !== 'todas') {
+                uniqueSubjects.add(p.subjectName);
             }
+        });
 
-            // 2. Ensure Professor Exists
+        // Criar disciplinas faltantes imediatamente
+        uniqueSubjects.forEach(subName => {
+            if (!currentSubjects.find(s => s.name.toLowerCase() === subName.toLowerCase())) {
+                currentSubjects.push({ id: generateId(), name: subName });
+            }
+        });
+
+        // Passo 2: Processar Professores e Vincular
+        pairs.forEach(({ professorName, subjectName }) => {
+            // Garantir que o Professor Exista
             let professor = currentProfessors.find(p => p.name.toLowerCase() === professorName.toLowerCase());
             if (!professor) {
                 professor = {
@@ -81,24 +89,28 @@ export const useStore = create<AppState>((set) => ({
                 currentProfessors.push(professor);
             }
 
-            // 3. Link Subject to Professor
-            if (!professor.subjects.includes(subjectId)) {
-                // We need to update the professor object in the array. 
-                // Since 'professor' is a reference to the object in currentProfessors array (which is a shallow copy of the state array but profound objects are references), 
-                // we should be careful. 
-                // Actually spread [...] does shallow copy of array. Objects inside are compatible references unless we map.
-                // But since we pushed new objects, those are safe. Existing objects need care.
-                // Let's rely on finding index to retain immutability pattern if we were strict, 
-                // but Zustand set return replaces the whole state.
+            // Determinar quais disciplinas vincular
+            let subjectsToLink: string[] = [];
 
-                // Let's map to be safe and clean.
-                const profIndex = currentProfessors.findIndex(p => p.id === professor!.id);
-                if (profIndex >= 0) {
-                    currentProfessors[profIndex] = {
-                        ...currentProfessors[profIndex],
-                        subjects: [...currentProfessors[profIndex].subjects, subjectId]
-                    };
-                }
+            if (subjectName.toLowerCase() === 'todas') {
+                // Vincular TODAS as disciplinas atuais
+                subjectsToLink = currentSubjects.map(s => s.id);
+            } else {
+                // Vincular disciplina específica
+                const subId = currentSubjects.find(s => s.name.toLowerCase() === subjectName.toLowerCase())?.id;
+                if (subId) subjectsToLink = [subId];
+            }
+
+            // Vinculá-los (evitar duplicatas)
+            const profIndex = currentProfessors.findIndex(p => p.id === professor!.id);
+            if (profIndex >= 0) {
+                const existingSubjects = new Set(currentProfessors[profIndex].subjects);
+                subjectsToLink.forEach(id => existingSubjects.add(id));
+
+                currentProfessors[profIndex] = {
+                    ...currentProfessors[profIndex],
+                    subjects: Array.from(existingSubjects)
+                };
             }
         });
 
@@ -114,7 +126,7 @@ export const useStore = create<AppState>((set) => ({
             id: generateId(),
             name,
             subjects: subjectIds,
-            availability: Array(5).fill(null).map(() => Array(5).fill(true)) // Default all available
+            availability: Array(5).fill(null).map(() => Array(5).fill(true)) // Padrão: todos disponíveis
         }]
     })),
 
@@ -141,8 +153,8 @@ export const useStore = create<AppState>((set) => ({
     setSchedule: (schedule) => set({ schedule }),
 
     moveLesson: () => set((state) => {
-        // Logic to move lesson would go here, updating the schedule grid
-        // For now simple placeholder
+        // A lógica para mover aula viria aqui, atualizando a grade de horários
+        // Por enquanto um placeholder simples
         return state;
     })
 }));

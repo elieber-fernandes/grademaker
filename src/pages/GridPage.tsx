@@ -16,7 +16,7 @@ export const GridView = () => {
         }
     };
 
-    // Initialize selection
+    // Inicializar seleção
     if (!selectedClassId && classGroups.length > 0) {
         setSelectedClassId(classGroups[0].id);
     }
@@ -158,7 +158,7 @@ export const GridView = () => {
 
                     <div className="grid grid-cols-[80px_1fr_1fr_1fr_1fr_1fr] gap-6 print:gap-2">
 
-                        {/* Header Row */}
+                        {/* Linha de Cabeçalho */}
                         <div className="col-start-2 col-span-5 grid grid-cols-5 gap-6 mb-2 print:gap-2">
                             {days.map(day => (
                                 <div key={day} className="text-center">
@@ -168,16 +168,16 @@ export const GridView = () => {
                             ))}
                         </div>
 
-                        {/* Grid content */}
+                        {/* Conteúdo da Grade */}
                         {periods.map((period) => (
                             <div key={period} className="contents group">
-                                {/* Time Column */}
+                                {/* Coluna de Horário */}
                                 <div className="flex flex-col items-end justify-center py-2 pr-4 text-right">
                                     <span className="font-bold text-slate-700 text-lg print:text-black">{`${7 + period}:30`}</span>
                                     <span className="text-xs text-slate-400 font-medium print:text-gray-600">até {`${8 + period}:20`}</span>
                                 </div>
 
-                                {/* Days for this period */}
+                                {/* Dias para este período */}
                                 {days.map((_, dayIndex) => {
                                     const slotId = `${currentClass?.id}-${dayIndex}-${period}`;
                                     const lesson = schedule.grid[slotId];

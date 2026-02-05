@@ -17,13 +17,13 @@ export const Layout = ({ children, activeTab, setActiveTab }: LayoutProps) => {
         { id: 'subjects', label: 'Disciplinas', icon: BookOpen },
         { id: 'classes', label: 'Turmas', icon: GraduationCap },
         { id: 'curriculum', label: 'Currículo', icon: Library },
-        { id: 'generate', label: 'Gerar Grade', icon: Sparkles }, // Changed to Sparkles for "Magic" feel
+        { id: 'generate', label: 'Gerar Grade', icon: Sparkles }, // Mudado para Sparkles para sensação de "Mágica"
         { id: 'setup', label: 'Importar', icon: Upload },
     ];
 
     return (
         <div className="flex h-screen overflow-hidden text-slate-800">
-            {/* Sidebar */}
+            {/* Barra Lateral */}
             <motion.aside
                 initial={false}
                 animate={{ width: isSidebarOpen ? 260 : 80 }}
@@ -111,10 +111,10 @@ export const Layout = ({ children, activeTab, setActiveTab }: LayoutProps) => {
                 </div>
             </motion.aside>
 
-            {/* Main Content */}
+            {/* Conteúdo Principal */}
             <main className="flex-1 overflow-auto bg-transparent p-6 md:p-8 relative">
                 <div className="max-w-7xl mx-auto space-y-8">
-                    {/* Header Area defined in pages usually, but we can put a common animate wrapper */}
+                    {/* Área de Cabeçalho definida nas páginas geralmente, mas podemos colocar um wrapper de animação comum */}
                     <motion.div
                         key={activeTab}
                         initial={{ opacity: 0, y: 10 }}

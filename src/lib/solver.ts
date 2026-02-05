@@ -1,6 +1,6 @@
 import type { Schedule, Professor, ClassGroup } from '../types';
 
-// Helper to check safety directly during generation (optimization)
+// Auxiliar para verificar segurança diretamente durante geração (otimização)
 const isSafe = (
     professorId: string,
     day: number,
@@ -8,19 +8,19 @@ const isSafe = (
     currentSchedule: Schedule,
     professors: Professor[]
 ): boolean => {
-    // Check if professor is already booked at this time
-    // iterate grid (slow) or use auxiliary map? For small scale, iteration is okay-ish but improved by local tracking
-    // We will assume the solver enables optimized lookups in future.
-    // For now, let's scan the current schedule.
+    // Verifica se professor já está ocupado neste horário
+    // iterar grade (lento) ou usar mapa auxiliar? Para pequena escala, iteração é aceitável mas melhorada com rastreamento local
+    // Vamos assumir que o solucionador permitirá buscas otimizadas no futuro.
+    // Por enquanto, vamos verificar o agendamento atual.
 
     for (const [key, lesson] of Object.entries(currentSchedule.grid)) {
         const [, dStr, pStr] = key.split('-');
         if (parseInt(dStr) === day && parseInt(pStr) === period && lesson.professorId === professorId) {
-            return false; // Professor busy
+            return false; // Professor ocupado
         }
     }
 
-    // Check availability
+    // Verificar disponibilidade
     const prof = professors.find(p => p.id === professorId);
     if (prof && !prof.availability[day]?.[period]) {
         return false;
@@ -33,12 +33,12 @@ export const generateSchedule = (
     professors: Professor[],
     classGroups: ClassGroup[]
 ): Schedule | null => {
-    // Deep copy initial structure? Or start fresh?
-    // Let's assume we want to fill *required* lessons.
+    // Cópia profunda da estrutura inicial? Ou começar do zero?
+    // Vamos assumir que queremos preencher aulas *necessárias*.
 
-    // 1. Flatten all specific lessons that need to happen.
-    // We need to know what lessons each class needs. 
-    // currently classGroup.gradeConfig maps subjectId -> count.
+    // 1. Aplainar todas as aulas específicas que precisam acontecer.
+    // Precisamos saber quais aulas cada turma precisa. 
+    // atualmente classGroup.gradeConfig mapeia idDisciplina -> quantidade.
 
     const pendingLessons: { classId: string, subjectId: string }[] = [];
 
@@ -50,38 +50,38 @@ export const generateSchedule = (
         });
     });
 
-    // Sort pending lessons? Maybe hardest constraints first (e.g. strict professors)
+    // Ordenar aulas pendentes? Talvez restrições mais difíceis primeiro (ex: professores restritos)
 
     const tempSchedule: Schedule = { grid: {} };
 
     const solve = (lessonIndex: number): boolean => {
         if (lessonIndex >= pendingLessons.length) {
-            return true; // All done!
+            return true; // Tudo pronto!
         }
 
         const task = pendingLessons[lessonIndex];
-        // Find a professor for this subject
+        // Encontrar um professor para esta disciplina
         const possibleProfs = professors.filter(p => p.subjects.includes(task.subjectId));
 
         if (possibleProfs.length === 0) {
-            // Impossible: no professor for this subject
+            // Impossível: nenhum professor para esta disciplina
             console.warn(`No professor found for subject ${task.subjectId}`);
             return false;
         }
 
-        // Try valid slots (Days 0-4, Periods 0-4)
-        // Heuristic: Try to spread them out?
-        // Randomize order to get different results?
+        // Tentar slots válidos (Dias 0-4, Períodos 0-4)
+        // Heurística: Tentar espalhá-los?
+        // Aleatorizar ordem para obter resultados diferentes?
 
         for (const prof of possibleProfs) {
             for (let d = 0; d < 5; d++) {
                 for (let p = 0; p < 5; p++) {
                     const slotKey = `${task.classId}-${d}-${p}`;
 
-                    // If slot is empty in this class
+                    // Se o slot estiver vazio nesta turma
                     if (!tempSchedule.grid[slotKey]) {
                         if (isSafe(prof.id, d, p, tempSchedule, professors)) {
-                            // DO MOVE
+                            // FAZER MOVIMENTO
                             tempSchedule.grid[slotKey] = {
                                 id: `gen-${d}-${p}-${task.classId}`,
                                 classGroupId: task.classId,
@@ -89,12 +89,12 @@ export const generateSchedule = (
                                 subjectId: task.subjectId
                             };
 
-                            // RECURSE
+                            // RECURSÃO
                             if (solve(lessonIndex + 1)) {
                                 return true;
                             }
 
-                            // BACKTRACK
+                            // BACKTRACK (RETROCEDER)
                             delete tempSchedule.grid[slotKey];
                         }
                     }
@@ -102,7 +102,7 @@ export const generateSchedule = (
             }
         }
 
-        return false; // Cannot place this lesson anywhere
+        return false; // Não é possível alocar esta aula em lugar nenhum
     };
 
     const success = solve(0);

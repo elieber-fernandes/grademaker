@@ -4,11 +4,11 @@ import type { Lesson, Subject, Professor } from '../types';
 import { motion } from 'framer-motion';
 
 interface ScheduleSlotProps {
-    id: string; // "classId-day-period"
+    id: string; // "idTurma-dia-período"
     lesson?: Lesson;
     subject?: Subject;
     professor?: Professor;
-    isOver?: boolean; // Prop from dnd-kit context logic if we wanted to hoist it, but useDroppable gives it
+    isOver?: boolean; // Propriedade da lógica de contexto do dnd-kit se quiséssemos elevá-la, mas useDroppable fornece isso
 }
 
 export const ScheduleSlot = ({ id, lesson, subject, professor }: ScheduleSlotProps) => {
@@ -25,7 +25,7 @@ export const ScheduleSlot = ({ id, lesson, subject, professor }: ScheduleSlotPro
                 !lesson && "hover:shadow-inner"
             )}
         >
-            {/* Background decoration for empty slots */}
+            {/* Decoração de fundo para slots vazios */}
             {!lesson && (
                 <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <div className="text-slate-400 text-xs font-medium tracking-wider uppercase">Livre</div>
@@ -39,7 +39,7 @@ export const ScheduleSlot = ({ id, lesson, subject, professor }: ScheduleSlotPro
                     animate={{ opacity: 1, scale: 1 }}
                     className="h-full w-full bg-gradient-to-br from-white to-indigo-50 rounded-2xl p-3 shadow-sm border border-indigo-100/50 flex flex-col justify-between cursor-grab active:cursor-grabbing group hover:shadow-indigo-200/50 hover:border-indigo-200 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
                 >
-                    {/* Aesthetic stripe */}
+                    {/* Faixa estética */}
                     <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-full" />
 
                     <div>

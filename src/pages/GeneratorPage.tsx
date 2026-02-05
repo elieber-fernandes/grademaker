@@ -18,7 +18,7 @@ export const GeneratorPage = () => {
         setResultMessage('Analisando restrições e calculando grade ótima...');
         setSuccess(null);
 
-        // Give UI time to update
+        // Dar tempo para UI atualizar
         setTimeout(() => {
             const start = performance.now();
             const newSchedule = generateSchedule(professors, classGroups);
@@ -33,7 +33,7 @@ export const GeneratorPage = () => {
                 setResultMessage('Não foi possível gerar uma grade válida com as restrições atuais.');
             }
             setIsGenerating(false);
-        }, 800); // Artificial delay to show animation
+        }, 800); // Atraso artificial para mostrar animação
     };
 
     const handleClear = () => {
@@ -62,7 +62,7 @@ export const GeneratorPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Controls */}
+                {/* Controles */}
                 <div className="glass-card p-8 space-y-6 flex flex-col h-full">
                     <h3 className="font-bold text-xl text-slate-800 border-b border-slate-100 pb-4">Painel de Controle</h3>
 
@@ -124,7 +124,7 @@ export const GeneratorPage = () => {
                     )}
                 </div>
 
-                {/* Status / Conflicts */}
+                {/* Status / Conflitos */}
                 <div className="glass-card p-0 overflow-hidden flex flex-col h-full">
                     <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                         <h3 className="font-bold text-xl text-slate-800">

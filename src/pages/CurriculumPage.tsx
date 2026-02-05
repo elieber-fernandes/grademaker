@@ -7,7 +7,7 @@ export const CurriculumPage = () => {
     const { classGroups, subjects, updateClassSubjectConfig } = useStore();
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
-    // Initialize selection
+    // Inicializar seleção
     if (!selectedClassId && classGroups.length > 0) {
         setSelectedClassId(classGroups[0].id);
     }
@@ -16,7 +16,7 @@ export const CurriculumPage = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/50 backdrop-blur-sm p-6 rounded-3xl border border-white/60 shadow-sm">
                 <div>
                     <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Matriz Curricular</h2>

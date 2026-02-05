@@ -7,17 +7,17 @@ export const SetupPage = () => {
     const { importLinkedData } = useStore();
     const [step, setStep] = useState<'input' | 'success'>('input');
 
-    // Inputs
+    // Entradas
     const [excelText, setExcelText] = useState('');
     const [classesText, setClassesText] = useState('');
 
     const handleImport = () => {
-        // Parse Excel Text (Professor \t Subject)
+        // Processar Texto do Excel (Professor \t Disciplina)
         const pairs: { professorName: string, subjectName: string }[] = [];
         const lines = excelText.split('\n');
 
         lines.forEach(line => {
-            const parts = line.split('\t'); // Excel copy uses tabs
+            const parts = line.split('\t'); // Cópia do Excel usa tabs
             if (parts.length >= 2) {
                 const prof = parts[0].trim();
                 const sub = parts[1].trim();
@@ -25,7 +25,7 @@ export const SetupPage = () => {
                     pairs.push({ professorName: prof, subjectName: sub });
                 }
             } else if (line.includes(',') || line.includes(';')) {
-                // Fallback for CSV
+                // Alternativa para CSV
                 const sep = line.includes(';') ? ';' : ',';
                 const partsCsv = line.split(sep);
                 if (partsCsv.length >= 2) {
@@ -38,7 +38,7 @@ export const SetupPage = () => {
             }
         });
 
-        // Parse Classes
+        // Processar Turmas
         const classes = classesText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
 
         if (pairs.length === 0 && classes.length === 0) {
@@ -95,7 +95,7 @@ export const SetupPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Excel Paste Area */}
+                {/* Área de Colagem do Excel */}
                 <div className="md:col-span-2 glass-card p-6 flex flex-col h-full">
                     <div className="flex items-center justify-between mb-4 border-b border-emerald-100 pb-2">
                         <div className="flex items-center gap-2 text-emerald-700 font-bold text-lg">
@@ -109,20 +109,21 @@ export const SetupPage = () => {
                         <ul className="list-disc list-inside space-y-1 opacity-80">
                             <li>Abra sua planilha (Excel ou Google Sheets).</li>
                             <li>Selecione duas colunas: <strong>Professor</strong> (Esq) e <strong>Disciplina</strong> (Dir).</li>
+                            <li>Use <strong>"Todas"</strong> na disciplina para professores que dão aula de tudo (ex: Fundamental I).</li>
                             <li>Copie (Ctrl+C) e cole na área abaixo.</li>
                         </ul>
                     </div>
 
                     <textarea
                         className="flex-1 w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none min-h-[400px] font-mono whitespace-pre"
-                        placeholder={`João Silva\tMatemática\nMaria Oliveira\tPortuguês\nPedro Santos\tHistória\nJoão Silva\tFísica`}
+                        placeholder={`João Silva\tMatemática\nMaria Oliveira\tPortuguês\nProf. Polivalente\tTodas`}
                         value={excelText}
                         onChange={e => setExcelText(e.target.value)}
                     />
                     <p className="text-xs text-slate-400 mt-2 text-right">Suporta delimitadores Tab (Excel), Vírgula e Ponto e vírgula.</p>
                 </div>
 
-                {/* Classes Column */}
+                {/* Coluna de Turmas */}
                 <div className="glass-card p-6 flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-4 text-indigo-600 font-bold text-lg border-b border-indigo-100 pb-2">
                         <Database size={20} /> Turmas

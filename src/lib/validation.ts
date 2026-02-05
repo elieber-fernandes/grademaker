@@ -15,18 +15,18 @@ export const findConflicts = (
     professors: Professor[]
 ): Conflict[] => {
     const conflicts: Conflict[] = [];
-    const professorTimeMap = new Map<string, string>(); // Key: "profId-day-period" -> "classId"
+    const professorTimeMap = new Map<string, string>(); // Chave: "idProf-dia-período" -> "idTurma"
 
-    // Iterate over all scheduled lessons
+    // Iterar sobre todas as aulas agendadas
     Object.entries(schedule.grid).forEach(([slotId, lesson]) => {
-        // slotId format: "classId-day-period"
+        // formato slotId: "idTurma-dia-período"
         const [classId, dayStr, periodStr] = slotId.split('-');
         const day = parseInt(dayStr);
         const period = parseInt(periodStr);
 
         if (!lesson.professorId) return;
 
-        // Check 1: Professor already teaching at this time
+        // Checagem 1: Professor já está dando aula neste horário
         const profKey = `${lesson.professorId}-${day}-${period}`;
         if (professorTimeMap.has(profKey)) {
             const existingClassId = professorTimeMap.get(profKey);
@@ -37,16 +37,16 @@ export const findConflicts = (
                 type: 'PROFESSOR_BUSY',
                 description: `Professor já está alocado na turma ${existingClassId} neste horário.`
             });
-            // Also flag the other class involved? Ideally yes, but let's stick to simple detection
+            // Também sinalizar a outra turma envolvida? Idealmente sim, mas vamos manter a detecção simples
         } else {
             professorTimeMap.set(profKey, classId);
         }
 
-        // Check 2: Professor availability
+        // Checagem 2: Disponibilidade do Professor
         const professor = professors.find(p => p.id === lesson.professorId);
         if (professor) {
-            // Professor availability matrix[day][period]
-            // Check bounds first to be safe
+            // Matriz de disponibilidade do professor[dia][período]
+            // Verificar limites antes por segurança
             if (professor.availability[day] && professor.availability[day][period] === false) {
                 conflicts.push({
                     day,

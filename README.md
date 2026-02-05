@@ -59,4 +59,4 @@ Built with modern web standards:
 
 ---
 
-Desenvolvido com ❤️ por Elieber Fernandes.
+Desenvolvido por Elieber Fernandes.

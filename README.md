@@ -1,73 +1,62 @@
-# React + TypeScript + Vite
+# Timetable+ 🎓
+> O Gerador de Horários Escolares Definitivo.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Timetable+** (anteriormente Urânia+) é uma aplicação web moderna e intuitiva projetada para resolver o complexo problema de criação de grades horárias escolares. Combinando um algoritmo inteligente com uma interface "Premium", ele permite que escolas gerem, ajustem e exportem seus horários em minutos, não dias.
 
-Currently, two official plugins are available:
+![Timetable+ Preview](https://placehold.co/800x400/6366f1/ffffff?text=Timetable%2B+Preview)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Funcionalidades Principais
 
-## React Compiler
+- **🤖 Geração Automática**: Algoritmo que distribui aulas evitando conflitos de professores e horários.
+- **📊 Smart Import (Excel)**: Copie e cole seus dados (Professores e Disciplinas) direto do Excel. O sistema entende e vincula tudo automaticamente.
+- **📚 Definição Curricular**: Interface visual para definir a carga horária de cada turma (Ex: 4 aulas de Matemática no 1º Ano A).
+- **🖱️ Drag & Drop**: Ajuste fino da grade arrastando e soltando os cards de aula.
+- **🎨 Design Premium**: Interface moderna com Glassmorphism, animações fluídas e Modo "Zen".
+- **🖨️ Exportação Pronta**:
+    - **Impressão/PDF**: Layout limpo, sem menus, perfeito para imprimir ou salvar como PDF.
+    - **CSV**: Exporte os dados brutos para planilhas.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Tecnologias
 
-## Expanding the ESLint configuration
+Built with modern web standards:
+- **Core**: [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [TailwindCSS](https://tailwindcss.com/) + CSS Modules (Glassmorphism)
+- **State**: [Zustand](https://github.com/pmndrs/zustand)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🚀 Como Rodar
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. **Clone o repositório**
+   ```bash
+   git clone https://github.com/elieber-fernandes/timetable.git
+   cd timetable
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+2. **Instale as dependências**
+   ```bash
+   npm install
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+3. **Inicie o servidor de desenvolvimento**
+   ```bash
+   npm run dev
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+4. **Build para Produção**
+   ```bash
+   npm run build
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 📝 Como Usar
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1.  Acesse a aba **Importar (Upload)** e cole seus dados de Professores/Disciplinas da sua planilha.
+2.  Vá em **Currículo (Library)** e defina quantas aulas cada matéria tem por turma.
+3.  Acesse **Gerar Grade (Sparkles)** e clique em "Gerar Grade Automática".
+4.  Faça ajustes manuais se necessário arrastando as aulas.
+5.  Clique em **Imprimir** para salvar sua grade em PDF.
+
+---
+
+Desenvolvido com ❤️ por Elieber Fernandes.

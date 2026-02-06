@@ -249,7 +249,7 @@ export const useStore = create<AppState>((set, get) => ({
         await supabase.from('schedule').upsert({ id: 'default', grid: schedule.grid });
     },
 
-    moveLesson: (lessonId, newTime) => set((state) => {
+    moveLesson: (_lessonId, _newTime) => set((state) => {
         // Placeholder
         return state;
     }),

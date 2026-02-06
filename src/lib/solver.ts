@@ -14,7 +14,13 @@ const isSafe = (
     // Por enquanto, vamos verificar o agendamento atual.
 
     for (const [key, lesson] of Object.entries(currentSchedule.grid)) {
-        const [, dStr, pStr] = key.split('-');
+        const parts = key.split(':::');
+        // Fallback for old format if necessary? No, assuming clean state or migration.
+        if (parts.length < 3) continue;
+
+        const dStr = parts[1];
+        const pStr = parts[2];
+
         if (parseInt(dStr) === day && parseInt(pStr) === period && lesson.professorId === professorId) {
             return false; // Professor ocupado
         }
@@ -76,7 +82,7 @@ export const generateSchedule = (
         for (const prof of possibleProfs) {
             for (let d = 0; d < 5; d++) {
                 for (let p = 0; p < 5; p++) {
-                    const slotKey = `${task.classId}-${d}-${p}`;
+                    const slotKey = `${task.classId}:::${d}:::${p}`;
 
                     // Se o slot estiver vazio nesta turma
                     if (!tempSchedule.grid[slotKey]) {

@@ -19,15 +19,21 @@ export const findConflicts = (
 
     // Iterar sobre todas as aulas agendadas
     Object.entries(schedule.grid).forEach(([slotId, lesson]) => {
-        // formato slotId: "idTurma-dia-período"
-        const [classId, dayStr, periodStr] = slotId.split('-');
+        // formato slotId: "idTurma:::dia:::período"
+        const parts = slotId.split(':::');
+        if (parts.length < 3) return;
+
+        const classId = parts[0];
+        const dayStr = parts[1];
+        const periodStr = parts[2];
+
         const day = parseInt(dayStr);
         const period = parseInt(periodStr);
 
         if (!lesson.professorId) return;
 
         // Checagem 1: Professor já está dando aula neste horário
-        const profKey = `${lesson.professorId}-${day}-${period}`;
+        const profKey = `${lesson.professorId}:::${day}:::${period}`;
         if (professorTimeMap.has(profKey)) {
             const existingClassId = professorTimeMap.get(profKey);
             conflicts.push({

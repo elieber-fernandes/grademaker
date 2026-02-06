@@ -35,7 +35,7 @@ export const GridView = () => {
         let csvContent = "Dia,Periodo,Turma,Disciplina,Professor\n";
 
         Object.entries(schedule.grid).forEach(([key, lesson]) => {
-            const parts = key.split('-');
+            const parts = key.split(':::');
             if (parts.length < 3) return;
 
             const dayName = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][parseInt(parts[1])];
@@ -179,7 +179,7 @@ export const GridView = () => {
 
                                 {/* Dias para este período */}
                                 {days.map((_, dayIndex) => {
-                                    const slotId = `${currentClass?.id}-${dayIndex}-${period}`;
+                                    const slotId = `${currentClass?.id}:::${dayIndex}:::${period}`;
                                     const lesson = schedule.grid[slotId];
                                     const subject = lesson ? subjects.find(s => s.id === lesson.subjectId) : undefined;
                                     const professor = lesson ? professors.find(p => p.id === lesson.professorId) : undefined;

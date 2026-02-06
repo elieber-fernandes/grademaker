@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { ProfessorsPage } from './pages/ProfessorsPage';
 import { GridView } from './pages/GridPage';
@@ -6,11 +6,16 @@ import { GeneratorPage } from './pages/GeneratorPage';
 import { SetupPage } from './pages/SetupPage';
 import { CurriculumPage } from './pages/CurriculumPage';
 import { useStore } from './store';
+import { Loader2 } from 'lucide-react';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { subjects, addSubject } = useStore();
+  const { subjects, addSubject, fetchInitialData, isLoading } = useStore();
   const [newSubject, setNewSubject] = useState('');
+
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
 
   const handleAddSubject = () => {
     if (newSubject) {
@@ -18,6 +23,15 @@ function App() {
       setNewSubject('');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 text-slate-500">
+        <Loader2 className="animate-spin mb-4" size={48} />
+        <p className="font-medium">Carregando dados da nuvem...</p>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (activeTab) {

@@ -66,16 +66,20 @@ export const CurriculumPage = () => {
                                         {
                                             label: 'Fundamental I', filter: (n: string) => {
                                                 const lower = n.toLowerCase();
-                                                return !lower.startsWith('infantil') && !lower.includes('série') && ['1', '2', '3', '4', '5'].some(d => n.includes(d));
+                                                const normalized = n.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                                                return !lower.startsWith('infantil') && !normalized.includes('serie') && ['1', '2', '3', '4', '5'].some(d => n.includes(d));
                                             }
                                         },
                                         {
                                             label: 'Fundamental II', filter: (n: string) => {
-                                                const lower = n.toLowerCase();
-                                                return !lower.includes('série') && ['6', '7', '8', '9'].some(d => n.includes(d));
+                                                const normalized = n.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                                                return !normalized.includes('serie') && ['6', '7', '8', '9'].some(d => n.includes(d));
                                             }
                                         },
-                                        { label: 'Ensino Médio', filter: (n: string) => n.toLowerCase().includes('série') },
+                                        {
+                                            label: 'Ensino Médio',
+                                            filter: (n: string) => n.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase().includes('serie')
+                                        },
                                         { label: 'TODAS as Turmas', filter: () => true, danger: true },
                                     ].map((opt, idx) => (
                                         <button

@@ -66,7 +66,7 @@ export const GridView = () => {
                 <div className="bg-indigo-50 p-6 rounded-full mb-6">
                     <School size={48} className="text-indigo-500" />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-800 mb-2">Bem-vindo ao Timetable+</h3>
+                <h3 className="text-2xl font-bold text-slate-800 mb-2">Bem-vindo ao GradeMaker</h3>
                 <p className="text-slate-500 max-w-md mb-8">Comece criando sua primeira turma para gerenciar a grade horária.</p>
 
                 <div className="flex gap-2 w-full max-w-sm">

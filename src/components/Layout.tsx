@@ -39,10 +39,10 @@ export const Layout = ({ children, activeTab, setActiveTab }: LayoutProps) => {
                                 className="flex items-center gap-2 overflow-hidden whitespace-nowrap"
                             >
                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30">
-                                    T+
+                                    GM
                                 </div>
                                 <span className="font-bold text-xl tracking-tight text-white">
-                                    Timetable<span className="text-indigo-400">+</span>
+                                    GradeMaker
                                 </span>
                             </motion.div>
                         )}

@@ -23,6 +23,7 @@ interface AppState {
     moveLesson: (lessonId: string, newTime: TimeSlot) => void;
     importBatch: (data: { subjects?: string[], classGroups?: string[], professors?: string[] }) => void;
     importLinkedData: (pairs: { professorName: string, subjectName: string }[], classes: string[]) => void;
+    applyConfigToClasses: (sourceClassId: string, targetClassIds: string[]) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -156,5 +157,18 @@ export const useStore = create<AppState>((set) => ({
         // A lógica para mover aula viria aqui, atualizando a grade de horários
         // Por enquanto um placeholder simples
         return state;
+    }),
+
+    applyConfigToClasses: (sourceClassId, targetClassIds) => set((state) => {
+        const sourceClass = state.classGroups.find(c => c.id === sourceClassId);
+        if (!sourceClass) return state;
+
+        return {
+            classGroups: state.classGroups.map(c =>
+                c.id === sourceClassId || !targetClassIds.includes(c.id)
+                    ? c
+                    : { ...c, gradeConfig: { ...sourceClass.gradeConfig } }
+            )
+        };
     })
 }));

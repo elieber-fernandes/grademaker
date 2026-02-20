@@ -1,7 +1,7 @@
 # Timetable+ 🎓
 > O Gerador de Horários Escolares Definitivo.
 
-**Timetable+** (anteriormente Urânia+) é uma aplicação web moderna e intuitiva projetada para resolver o complexo problema de criação de grades horárias escolares. Combinando um algoritmo inteligente com uma interface "Premium", ele permite que escolas gerem, ajustem e exportem seus horários em minutos, não dias.
+**Timetable+** é uma aplicação web moderna e intuitiva projetada para resolver o complexo problema de criação de grades horárias escolares. Combinando um algoritmo inteligente com uma interface "Premium", ele permite que escolas gerem, ajustem e exportem seus horários em minutos, não dias.
 
 ![Timetable+ Preview](https://placehold.co/800x400/6366f1/ffffff?text=Timetable%2B+Preview)
 

@@ -26,37 +26,5 @@ Built with modern web standards:
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
 
-## 🚀 Como Rodar
-
-1. **Clone o repositório**
-   ```bash
-   git clone https://github.com/elieber-fernandes/timetable.git
-   cd timetable
-   ```
-
-2. **Instale as dependências**
-   ```bash
-   npm install
-   ```
-
-3. **Inicie o servidor de desenvolvimento**
-   ```bash
-   npm run dev
-   ```
-
-4. **Build para Produção**
-   ```bash
-   npm run build
-   ```
-
-## 📝 Como Usar
-
-1.  Acesse a aba **Importar (Upload)** e cole seus dados de Professores/Disciplinas da sua planilha.
-2.  Vá em **Currículo (Library)** e defina quantas aulas cada matéria tem por turma.
-3.  Acesse **Gerar Grade (Sparkles)** e clique em "Gerar Grade Automática".
-4.  Faça ajustes manuais se necessário arrastando as aulas.
-5.  Clique em **Imprimir** para salvar sua grade em PDF.
-
----
 
 Desenvolvido por Elieber Fernandes.

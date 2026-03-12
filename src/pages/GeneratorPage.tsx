@@ -39,7 +39,7 @@ export const GeneratorPage = () => {
     const handleClear = () => {
         if (confirm('Tem certeza? Isso apagará toda a grade atual.')) {
             setSchedule({ grid: {} });
-            setSuccess(null);
+            setSuccess(true);
             setResultMessage('Grade limpa com sucesso.');
         }
     };

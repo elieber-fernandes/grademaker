@@ -15,7 +15,7 @@ function App() {
 
   useEffect(() => {
     fetchInitialData();
-  }, []);
+  }, [fetchInitialData]);
 
   const handleAddSubject = () => {
     if (newSubject) {

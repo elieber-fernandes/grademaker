@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { ScheduleSlot } from '../components/ScheduleSlot';
 import { DndContext, type DragEndEvent } from '@dnd-kit/core';
@@ -17,9 +17,11 @@ export const GridView = () => {
     };
 
     // Inicializar seleção
-    if (!selectedClassId && classGroups.length > 0) {
-        setSelectedClassId(classGroups[0].id);
-    }
+    useEffect(() => {
+        if (!selectedClassId && classGroups.length > 0) {
+            setSelectedClassId(classGroups[0].id);
+        }
+    }, [selectedClassId, classGroups]);
 
     const currentClass = classGroups.find(c => c.id === selectedClassId);
 

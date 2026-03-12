@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { Minus, Plus, GraduationCap, AlertCircle, Copy, ChevronDown, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,9 +9,11 @@ export const CurriculumPage = () => {
     const [showCopyMenu, setShowCopyMenu] = useState(false);
 
     // Inicializar seleção
-    if (!selectedClassId && classGroups.length > 0) {
-        setSelectedClassId(classGroups[0].id);
-    }
+    useEffect(() => {
+        if (!selectedClassId && classGroups.length > 0) {
+            setSelectedClassId(classGroups[0].id);
+        }
+    }, [selectedClassId, classGroups]);
 
     const currentClass = classGroups.find(c => c.id === selectedClassId);
 

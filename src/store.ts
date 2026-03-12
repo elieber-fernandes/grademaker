@@ -264,9 +264,9 @@ export const useStore = create<AppState>((set, get) => ({
         // Atualizar Local
         set({
             classGroups: state.classGroups.map(c =>
-                c.id === sourceClassId || !targetClassIds.includes(c.id)
-                    ? c
-                    : { ...c, gradeConfig: newConfig }
+                targetClassIds.includes(c.id)
+                    ? { ...c, gradeConfig: newConfig }
+                    : c
             )
         });
 

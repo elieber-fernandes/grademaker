@@ -1,4 +1,5 @@
 import type { Schedule, Professor, ClassGroup } from '../types';
+import { NUM_PERIODS } from '../constants';
 
 // Auxiliar para verificar segurança diretamente durante geração (otimização)
 const isSafe = (
@@ -81,7 +82,7 @@ export const generateSchedule = (
 
         for (const prof of possibleProfs) {
             for (let d = 0; d < 5; d++) {
-                for (let p = 0; p < 5; p++) {
+                for (let p = 0; p < NUM_PERIODS; p++) {
                     const slotKey = `${task.classId}:::${d}:::${p}`;
 
                     // Se o slot estiver vazio nesta turma

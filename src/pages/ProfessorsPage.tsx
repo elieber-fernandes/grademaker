@@ -2,6 +2,7 @@ import { useState, Fragment } from 'react';
 import { useStore } from '../store';
 import { Plus, Trash2, Clock, User, Book, Users, X, Check, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { NUM_PERIODS, PERIODS } from '../constants';
 
 export const ProfessorsPage = () => {
     const { professors, subjects, addProfessor, updateProfessorAvailability } = useStore();
@@ -243,10 +244,10 @@ export const ProfessorsPage = () => {
                                         </div>
                                     ))}
 
-                                    {Array(5).fill(0).map((_, periodIndex) => (
+                                    {Array(NUM_PERIODS).fill(0).map((_, periodIndex) => (
                                         <Fragment key={periodIndex}>
                                             <div className="flex items-center justify-end pr-4 text-xs font-bold text-slate-400">
-                                                {periodIndex + 1}º Horário
+                                                {PERIODS[periodIndex]}
                                             </div>
                                             {tempAvailability.map((daySlots, dayIndex) => (
                                                 <button

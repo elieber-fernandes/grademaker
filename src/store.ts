@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Professor, Subject, ClassGroup, Schedule, TimeSlot } from './types';
 import { supabase } from './lib/supabase';
+import { seedInitialData } from './data/seedData';
 
 // Helper de ID
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -49,16 +50,41 @@ export const useStore = create<AppState>((set, get) => ({
             if (subRes.error) throw subRes.error;
             if (classRes.error) throw classRes.error;
 
+            let professors = profRes.data || [];
+            let subjects = subRes.data || [];
+            let classGroups = classRes.data || [];
+
+            // Se o banco estiver vazio, inserir dados iniciais (seed)
+            const seedResult = await seedInitialData(professors, subjects, classGroups);
+            if (seedResult) {
+                professors = seedResult.professors;
+                subjects = seedResult.subjects;
+                classGroups = seedResult.classGroups;
+            }
+
             set({
-                professors: profRes.data || [],
-                subjects: subRes.data || [],
-                classGroups: classRes.data || [],
+                professors,
+                subjects,
+                classGroups,
                 schedule: schedRes.data ? { grid: schedRes.data.grid } : { grid: {} },
                 isLoading: false
             });
         } catch (error) {
-            console.error('Erro ao carregar dados:', error);
-            set({ isLoading: false });
+            console.error('Erro ao carregar dados do Supabase:', error);
+            // Fallback: usar dados de seed localmente quando o banco não está acessível
+            const seedResult = await seedInitialData([], [], []);
+            if (seedResult) {
+                set({
+                    professors: seedResult.professors,
+                    subjects: seedResult.subjects,
+                    classGroups: seedResult.classGroups,
+                    schedule: { grid: {} },
+                    isLoading: false
+                });
+                console.log('📋 Dados de seed carregados localmente como fallback.');
+            } else {
+                set({ isLoading: false });
+            }
         }
     },
 
@@ -71,7 +97,7 @@ export const useStore = create<AppState>((set, get) => ({
             id: generateId(),
             name,
             subjects: [],
-            availability: Array(5).fill(null).map(() => Array(5).fill(true))
+            availability: Array(5).fill(null).map(() => Array(6).fill(true))
         }));
 
         // Salvar no Banco
@@ -131,7 +157,7 @@ export const useStore = create<AppState>((set, get) => ({
                     id: generateId(),
                     name: professorName,
                     subjects: [],
-                    availability: Array(5).fill(null).map(() => Array(5).fill(true))
+                    availability: Array(5).fill(null).map(() => Array(6).fill(true))
                 };
                 updatedProfessors.push(professor);
             }
@@ -195,7 +221,7 @@ export const useStore = create<AppState>((set, get) => ({
             id: generateId(),
             name,
             subjects: subjectIds,
-            availability: Array(5).fill(null).map(() => Array(5).fill(true))
+            availability: Array(5).fill(null).map(() => Array(6).fill(true))
         };
 
         // Otimista

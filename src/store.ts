@@ -56,10 +56,16 @@ export const useStore = create<AppState>()(
                     const hasCloudData = (profRes.data?.length || 0) > 0 || (subRes.data?.length || 0) > 0 || (classRes.data?.length || 0) > 0;
 
                     if (hasCloudData) {
+                        const mappedClassGroups = (classRes.data || []).map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            gradeConfig: c.grade_config || {}
+                        }));
+
                         set({
                             professors: profRes.data || [],
                             subjects: subRes.data || [],
-                            classGroups: classRes.data || [],
+                            classGroups: mappedClassGroups,
                             schedule: schedRes.data ? { grid: schedRes.data.grid } : { grid: {} },
                             isLoading: false
                         });

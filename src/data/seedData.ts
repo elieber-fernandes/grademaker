@@ -42,7 +42,7 @@ const INITIAL_CLASS_GROUPS: string[] = [
     '9º Ano A', '9º Ano B', '9º Ano C', '9º Ano D',
     '1ª Série A', '1ª Série B', '1ª Série C', '1ª Série D',
     '2ª Série A', '2ª Série B', '2ª Série C', '2ª Série D',
-    '3ª Série A', '3ª Série B', '3ª Série C', '3ª Série D',
+    '3ª Série A', '3ª Série B', '3ª Série C',
 ];
 
 /**

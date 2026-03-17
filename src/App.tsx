@@ -1,21 +1,43 @@
 import { useState, useEffect } from 'react';
+import { type Session } from '@supabase/supabase-js';
+import { supabase } from './lib/supabase';
 import { Layout } from './components/Layout';
 import { ProfessorsPage } from './pages/ProfessorsPage';
 import { GridView } from './pages/GridPage';
 import { GeneratorPage } from './pages/GeneratorPage';
 import { SetupPage } from './pages/SetupPage';
 import { CurriculumPage } from './pages/CurriculumPage';
+import { LoginPage } from './pages/LoginPage';
 import { useStore } from './store';
 import { Loader2 } from 'lucide-react';
 
 function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const { subjects, addSubject, fetchInitialData, isLoading } = useStore();
   const [newSubject, setNewSubject] = useState('');
 
   useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsInitializing(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (session) {
+      fetchInitialData();
+    }
+  }, [fetchInitialData, session]);
 
   const handleAddSubject = () => {
     if (newSubject) {
@@ -23,6 +45,19 @@ function App() {
       setNewSubject('');
     }
   };
+
+  if (isInitializing) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-900 text-slate-300">
+        <Loader2 className="animate-spin mb-4 text-indigo-500" size={48} />
+        <p className="font-medium animate-pulse">Verificando sessão...</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <LoginPage />;
+  }
 
   if (isLoading) {
     return (

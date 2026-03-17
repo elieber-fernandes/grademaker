@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Calendar, Users, BookOpen, GraduationCap, Menu, Sparkles, LogOut, Upload, Library } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../lib/supabase';
 
 interface LayoutProps {
     children: ReactNode;
@@ -96,7 +97,10 @@ export const Layout = ({ children, activeTab, setActiveTab }: LayoutProps) => {
                 </nav>
 
                 <div className="p-4 border-t border-white/5">
-                    <button className={`w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors group ${!isSidebarOpen && 'justify-center'}`}>
+                    <button 
+                        onClick={() => supabase.auth.signOut()}
+                        className={`w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors group ${!isSidebarOpen && 'justify-center'}`}
+                    >
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-emerald-400 p-[2px]">
                             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" className="w-full h-full rounded-full bg-slate-900" />
                         </div>

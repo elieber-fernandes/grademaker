@@ -6,6 +6,27 @@ import { supabase } from './lib/supabase';
 // Helper de ID
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Helper para ordenar turmas: Fundamental II primeiro (contém "Ano"), Ensino Médio depois (contém "Série")
+const sortClassGroups = (classes: ClassGroup[]) => {
+    return [...classes].sort((a, b) => {
+        const isAFund2 = a.name.includes('Ano');
+        const isBFund2 = b.name.includes('Ano');
+        const isAMedio = a.name.includes('Série');
+        const isBMedio = b.name.includes('Série');
+
+        // Prioridade 1: Fundamental II antes do Médio
+        if (isAFund2 && !isBFund2) return -1;
+        if (!isAFund2 && isBFund2) return 1;
+
+        // Prioridade 2: Ensino Médio
+        if (isAMedio && !isBMedio) return -1;
+        if (!isAMedio && isBMedio) return 1;
+
+        // Mesma categoria ou nenhuma: ordem alfabética natura
+        return a.name.localeCompare(b.name);
+    });
+};
+
 interface AppState {
     professors: Professor[];
     subjects: Subject[];
@@ -65,7 +86,7 @@ export const useStore = create<AppState>()(
                         set({
                             professors: profRes.data || [],
                             subjects: subRes.data || [],
-                            classGroups: mappedClassGroups,
+                            classGroups: sortClassGroups(mappedClassGroups),
                             schedule: schedRes.data ? { grid: schedRes.data.grid } : { grid: {} },
                             isLoading: false
                         });
@@ -104,7 +125,7 @@ export const useStore = create<AppState>()(
                             set({
                                 professors: seedResult.professors,
                                 subjects: seedResult.subjects,
-                                classGroups: seedResult.classGroups,
+                                classGroups: sortClassGroups(seedResult.classGroups),
                                 schedule: { grid: {} },
                                 isLoading: false
                             });
@@ -131,7 +152,7 @@ export const useStore = create<AppState>()(
 
                 set({
                     subjects: [...state.subjects, ...newSubjects],
-                    classGroups: [...state.classGroups, ...newClasses],
+                    classGroups: sortClassGroups([...state.classGroups, ...newClasses]),
                     professors: [...state.professors, ...newProfessors]
                 });
 
@@ -191,7 +212,7 @@ export const useStore = create<AppState>()(
                 });
 
                 set({
-                    classGroups: [...state.classGroups, ...newClasses],
+                    classGroups: sortClassGroups([...state.classGroups, ...newClasses]),
                     subjects: allSubjects,
                     professors: updatedProfessors,
                     isLoading: false
@@ -229,7 +250,7 @@ export const useStore = create<AppState>()(
 
             addClassGroup: async (name) => {
                 const newClass = { id: generateId(), name, gradeConfig: {} };
-                set(state => ({ classGroups: [...state.classGroups, newClass] }));
+                set(state => ({ classGroups: sortClassGroups([...state.classGroups, newClass]) }));
                 await supabase.from('class_groups').insert({ id: newClass.id, name: newClass.name, grade_config: newClass.gradeConfig });
             },
 

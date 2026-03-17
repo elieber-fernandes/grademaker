@@ -1,53 +1,25 @@
 import type { Schedule, Professor, ClassGroup } from '../types';
-import { NUM_PERIODS } from '../constants';
+import { NUM_PERIODS, NUM_DAYS } from '../constants';
 
-// Auxiliar para verificar segurança diretamente durante geração (otimização)
-const isSafe = (
-    professorId: string,
-    day: number,
-    period: number,
-    currentSchedule: Schedule,
-    professors: Professor[]
-): boolean => {
-    // Verifica se professor já está ocupado neste horário
-    // iterar grade (lento) ou usar mapa auxiliar? Para pequena escala, iteração é aceitável mas melhorada com rastreamento local
-    // Vamos assumir que o solucionador permitirá buscas otimizadas no futuro.
-    // Por enquanto, vamos verificar o agendamento atual.
+const MAX_TIME_MS = 10000; // Timeout de 10 segundos
 
-    for (const [key, lesson] of Object.entries(currentSchedule.grid)) {
-        const parts = key.split(':::');
-        // Fallback for old format if necessary? No, assuming clean state or migration.
-        if (parts.length < 3) continue;
-
-        const dStr = parts[1];
-        const pStr = parts[2];
-
-        if (parseInt(dStr) === day && parseInt(pStr) === period && lesson.professorId === professorId) {
-            return false; // Professor ocupado
-        }
+// Embaralha array in-place (Fisher-Yates)
+const shuffle = <T>(arr: T[]): T[] => {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-
-    // Verificar disponibilidade
-    const prof = professors.find(p => p.id === professorId);
-    if (prof && !prof.availability[day]?.[period]) {
-        return false;
-    }
-
-    return true;
+    return arr;
 };
 
 export const generateSchedule = (
     professors: Professor[],
     classGroups: ClassGroup[]
 ): Schedule | null => {
-    // Cópia profunda da estrutura inicial? Ou começar do zero?
-    // Vamos assumir que queremos preencher aulas *necessárias*.
+    const startTime = Date.now();
 
-    // 1. Aplainar todas as aulas específicas que precisam acontecer.
-    // Precisamos saber quais aulas cada turma precisa. 
-    // atualmente classGroup.gradeConfig mapeia idDisciplina -> quantidade.
-
-    const pendingLessons: { classId: string, subjectId: string }[] = [];
+    // ===== 1. Montar lista de aulas pendentes =====
+    const pendingLessons: { classId: string; subjectId: string }[] = [];
 
     classGroups.forEach(cls => {
         Object.entries(cls.gradeConfig).forEach(([subId, count]) => {
@@ -57,61 +29,130 @@ export const generateSchedule = (
         });
     });
 
-    // Ordenar aulas pendentes? Talvez restrições mais difíceis primeiro (ex: professores restritos)
+    if (pendingLessons.length === 0) {
+        return { grid: {} };
+    }
 
-    const tempSchedule: Schedule = { grid: {} };
+    // ===== 2. Pré-computar mapa de professores por disciplina =====
+    const profsBySubject = new Map<string, Professor[]>();
+    professors.forEach(prof => {
+        prof.subjects.forEach(subId => {
+            if (!profsBySubject.has(subId)) profsBySubject.set(subId, []);
+            profsBySubject.get(subId)!.push(prof);
+        });
+    });
+
+    // ===== 3. Ordenar por restrição (MRV - Minimum Remaining Values) =====
+    // Disciplinas com menos professores disponíveis primeiro
+    pendingLessons.sort((a, b) => {
+        const profsA = profsBySubject.get(a.subjectId)?.length || 0;
+        const profsB = profsBySubject.get(b.subjectId)?.length || 0;
+        return profsA - profsB;
+    });
+
+    // ===== 4. Estruturas de rastreamento O(1) =====
+    // Rastreia quais slots estão ocupados por um professor (dia:::período -> profId)
+    const profOccupied = new Map<string, string>(); // "profId:::day:::period" -> classId
+    const grid: Schedule['grid'] = {};
+
+    const isSlotFreeForProf = (profId: string, day: number, period: number): boolean => {
+        return !profOccupied.has(`${profId}:::${day}:::${period}`);
+    };
+
+    const isProfAvailable = (prof: Professor, day: number, period: number): boolean => {
+        return prof.availability[day]?.[period] !== false;
+    };
+
+    // ===== 5. Gerar lista de slots embaralhados por turma =====
+    const totalSlots = NUM_DAYS * NUM_PERIODS;
+    const slotOrder: { d: number; p: number }[] = [];
+    for (let d = 0; d < NUM_DAYS; d++) {
+        for (let p = 0; p < NUM_PERIODS; p++) {
+            slotOrder.push({ d, p });
+        }
+    }
+
+    // ===== 6. Backtracking com timeout =====
+    let attempts = 0;
 
     const solve = (lessonIndex: number): boolean => {
+        // Timeout check a cada 5000 tentativas
+        if (++attempts % 5000 === 0) {
+            if (Date.now() - startTime > MAX_TIME_MS) {
+                return false;
+            }
+        }
+
         if (lessonIndex >= pendingLessons.length) {
             return true; // Tudo pronto!
         }
 
         const task = pendingLessons[lessonIndex];
-        // Encontrar um professor para esta disciplina
-        const possibleProfs = professors.filter(p => p.subjects.includes(task.subjectId));
+        const possibleProfs = profsBySubject.get(task.subjectId);
 
-        if (possibleProfs.length === 0) {
-            // Impossível: nenhum professor para esta disciplina
-            console.warn(`No professor found for subject ${task.subjectId}`);
+        if (!possibleProfs || possibleProfs.length === 0) {
+            console.warn(`Nenhum professor encontrado para a disciplina ${task.subjectId}`);
             return false;
         }
 
-        // Tentar slots válidos (Dias 0-4, Períodos 0-4)
-        // Heurística: Tentar espalhá-los?
-        // Aleatorizar ordem para obter resultados diferentes?
+        // Embaralhar professores e slots para variar resultados
+        const shuffledProfs = shuffle([...possibleProfs]);
+        const shuffledSlots = shuffle([...slotOrder]);
 
-        for (const prof of possibleProfs) {
-            for (let d = 0; d < 5; d++) {
-                for (let p = 0; p < NUM_PERIODS; p++) {
-                    const slotKey = `${task.classId}:::${d}:::${p}`;
+        for (const prof of shuffledProfs) {
+            for (const { d, p } of shuffledSlots) {
+                const slotKey = `${task.classId}:::${d}:::${p}`;
 
-                    // Se o slot estiver vazio nesta turma
-                    if (!tempSchedule.grid[slotKey]) {
-                        if (isSafe(prof.id, d, p, tempSchedule, professors)) {
-                            // FAZER MOVIMENTO
-                            tempSchedule.grid[slotKey] = {
-                                id: `gen-${d}-${p}-${task.classId}`,
-                                classGroupId: task.classId,
-                                professorId: prof.id,
-                                subjectId: task.subjectId
-                            };
+                // Slot já ocupado nesta turma?
+                if (grid[slotKey]) continue;
 
-                            // RECURSÃO
-                            if (solve(lessonIndex + 1)) {
-                                return true;
-                            }
+                // Professor disponível neste horário?
+                if (!isProfAvailable(prof, d, p)) continue;
 
-                            // BACKTRACK (RETROCEDER)
-                            delete tempSchedule.grid[slotKey];
-                        }
-                    }
+                // Professor já tem aula neste horário em outra turma?
+                if (!isSlotFreeForProf(prof.id, d, p)) continue;
+
+                // === FAZER MOVIMENTO ===
+                grid[slotKey] = {
+                    id: `gen-${d}-${p}-${task.classId}`,
+                    classGroupId: task.classId,
+                    professorId: prof.id,
+                    subjectId: task.subjectId
+                };
+                profOccupied.set(`${prof.id}:::${d}:::${p}`, task.classId);
+
+                // === RECURSÃO ===
+                if (solve(lessonIndex + 1)) {
+                    return true;
                 }
+
+                // === BACKTRACK ===
+                delete grid[slotKey];
+                profOccupied.delete(`${prof.id}:::${d}:::${p}`);
             }
         }
 
-        return false; // Não é possível alocar esta aula em lugar nenhum
+        return false;
     };
 
-    const success = solve(0);
-    return success ? tempSchedule : null;
+    // ===== 7. Tentar resolver (com múltiplas tentativas se necessário) =====
+    const maxRetries = 3;
+    for (let retry = 0; retry < maxRetries; retry++) {
+        // Limpar estado
+        Object.keys(grid).forEach(k => delete grid[k]);
+        profOccupied.clear();
+        attempts = 0;
+
+        // Re-embaralhar apenas a ordem dentro de cada nível de restrição
+        // (mantém MRV mas varia dentro do mesmo nível)
+
+        if (solve(0)) {
+            console.log(`Grade gerada com sucesso na tentativa ${retry + 1}, ${attempts} iterações`);
+            return { grid };
+        }
+
+        console.warn(`Tentativa ${retry + 1} falhou após ${attempts} iterações`);
+    }
+
+    return null;
 };

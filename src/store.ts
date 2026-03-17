@@ -38,6 +38,8 @@ interface AppState {
     fetchInitialData: () => Promise<void>;
 
     addProfessor: (name: string, subjectIds: string[]) => Promise<void>;
+    updateProfessor: (id: string, name: string, subjectIds: string[]) => Promise<void>;
+    removeProfessor: (id: string) => Promise<void>;
     updateProfessorAvailability: (id: string, availability: boolean[][]) => Promise<void>;
     addSubject: (name: string) => Promise<void>;
     addClassGroup: (name: string) => Promise<void>;
@@ -248,6 +250,20 @@ export const useStore = create<AppState>()(
                 };
                 set(state => ({ professors: [...state.professors, newProf] }));
                 await supabase.from('professors').insert(newProf);
+            },
+            
+            updateProfessor: async (id, name, subjectIds) => {
+                set(state => ({
+                    professors: state.professors.map(p => p.id === id ? { ...p, name, subjects: subjectIds } : p)
+                }));
+                await supabase.from('professors').update({ name, subjects: subjectIds }).eq('id', id);
+            },
+
+            removeProfessor: async (id) => {
+                set(state => ({
+                    professors: state.professors.filter(p => p.id !== id)
+                }));
+                await supabase.from('professors').delete().eq('id', id);
             },
 
             updateProfessorAvailability: async (id, availability) => {

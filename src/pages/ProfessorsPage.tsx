@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NUM_PERIODS, PERIODS } from '../constants';
 
 export const ProfessorsPage = () => {
-    const { professors, subjects, addProfessor, updateProfessorAvailability } = useStore();
+    const { professors, subjects, addProfessor, updateProfessor, removeProfessor, updateProfessorAvailability } = useStore();
     const [isAdding, setIsAdding] = useState(false);
     const [editingProfId, setEditingProfId] = useState<string | null>(null);
+    const [isEditingInfo, setIsEditingInfo] = useState(false);
+    const [editData, setEditData] = useState<{ name: string; subjectIds: string[] }>({ name: '', subjectIds: [] });
     const [tempAvailability, setTempAvailability] = useState<boolean[][]>([]);
     const [newByName, setNewByName] = useState('');
     const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
@@ -21,11 +23,39 @@ export const ProfessorsPage = () => {
         }
     };
 
-    const toggleSubject = (id: string) => {
-        if (selectedSubjectIds.includes(id)) {
-            setSelectedSubjectIds(selectedSubjectIds.filter(s => s !== id));
+    const toggleSubject = (id: string, isEdit = false) => {
+        if (isEdit) {
+            if (editData.subjectIds.includes(id)) {
+                setEditData({ ...editData, subjectIds: editData.subjectIds.filter(s => s !== id) });
+            } else {
+                setEditData({ ...editData, subjectIds: [...editData.subjectIds, id] });
+            }
         } else {
-            setSelectedSubjectIds([...selectedSubjectIds, id]);
+            if (selectedSubjectIds.includes(id)) {
+                setSelectedSubjectIds(selectedSubjectIds.filter(s => s !== id));
+            } else {
+                setSelectedSubjectIds([...selectedSubjectIds, id]);
+            }
+        }
+    };
+
+    const handleDelete = (id: string, name: string) => {
+        if (confirm(`Deseja realmente excluir o(a) professor(a) ${name}?`)) {
+            removeProfessor(id);
+        }
+    };
+
+    const openInfoEditor = (prof: { id: string, name: string, subjects: string[] }) => {
+        setEditData({ name: prof.name, subjectIds: [...prof.subjects] });
+        setEditingProfId(prof.id);
+        setIsEditingInfo(true);
+    };
+
+    const handleSaveInfo = () => {
+        if (editingProfId && editData.name && editData.subjectIds.length > 0) {
+            updateProfessor(editingProfId, editData.name, editData.subjectIds);
+            setEditingProfId(null);
+            setIsEditingInfo(false);
         }
     };
 
@@ -155,6 +185,7 @@ export const ProfessorsPage = () => {
                                 {prof.name.charAt(0)}
                             </div>
                             <button
+                                onClick={() => handleDelete(prof.id, prof.name)}
                                 title="Excluir professor"
                                 aria-label="Excluir professor"
                                 className="text-slate-300 hover:text-red-500 transition-colors bg-white p-2 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all"
@@ -163,7 +194,16 @@ export const ProfessorsPage = () => {
                             </button>
                         </div>
 
-                        <h3 className="font-bold text-slate-800 text-xl mb-1">{prof.name}</h3>
+                        <div className="flex justify-between items-center mb-1">
+                            <h3 className="font-bold text-slate-800 text-xl">{prof.name}</h3>
+                            <button
+                                onClick={() => openInfoEditor(prof)}
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                title="Editar dados básicos"
+                            >
+                                <Users size={16} />
+                            </button>
+                        </div>
 
                         <div className="flex flex-wrap gap-1.5 mb-6 min-h-[30px]">
                             {prof.subjects.map(sId => {
@@ -198,9 +238,88 @@ export const ProfessorsPage = () => {
                 )}
             </div>
 
+            {/* Modal de Edição de Dados Básicos */}
+            <AnimatePresence>
+                {editingProfId && isEditingInfo && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+                        onClick={() => { setEditingProfId(null); setIsEditingInfo(false); }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
+                                    <User className="text-indigo-500" />
+                                    Editar Professor
+                                </h3>
+                                <button
+                                    onClick={() => { setEditingProfId(null); setIsEditingInfo(false); }}
+                                    className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Nome Completo</label>
+                                    <input
+                                        value={editData.name}
+                                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow font-medium"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-3">Disciplinas Habilitadas</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {subjects.map(subject => (
+                                            <button
+                                                key={subject.id}
+                                                onClick={() => toggleSubject(subject.id, true)}
+                                                className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${editData.subjectIds.includes(subject.id)
+                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200'
+                                                    : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600'
+                                                    }`}
+                                            >
+                                                {subject.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
+                                    <button
+                                        onClick={() => { setEditingProfId(null); setIsEditingInfo(false); }}
+                                        className="px-6 py-2.5 text-slate-500 hover:text-slate-800 font-medium transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={handleSaveInfo}
+                                        disabled={!editData.name || editData.subjectIds.length === 0}
+                                        className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all"
+                                    >
+                                        Salvar Alterações
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Modal de Disponibilidade */}
             <AnimatePresence>
-                {editingProfId && (
+                {editingProfId && !isEditingInfo && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}

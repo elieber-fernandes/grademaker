@@ -81,12 +81,66 @@ function buildSeedData(): { professors: Professor[]; subjects: Subject[]; classG
         }
     });
 
+    // Configuração padrão para o Ensino Fundamental II
+    const defaultFund2Config: Record<string, number> = {
+        'Matematica': 5,
+        'Ciencias': 3,
+        'Lingua Inglesa': 5,
+        'Historia': 3,
+        'Geografia': 3,
+        'Projeto de Vida': 1,
+        'Educação Fisica': 2,
+        'Literatura Portuguesa': 5,
+        'Ensino Religioso': 1,
+        'Artes': 1,
+        'Pensamento Computacional': 1,
+    };
+
+    // Configuração padrão para o Ensino Médio
+    const defaultMedioConfig: Record<string, number> = {
+        'Matematica': 3,
+        'Quimica': 3,
+        'Redação': 2,
+        'Filosofia': 1,
+        'Lingua Inglesa': 3,
+        'Historia': 3,
+        'Biologia': 3,
+        'Geografia': 3,
+        'Fisica': 3,
+        'Projeto de Vida': 1,
+        'Educação Fisica': 1,
+        'Literatura Portuguesa': 3,
+        'Artes': 1,
+    };
+
     // 4. Criar turmas
-    const classGroups: ClassGroup[] = INITIAL_CLASS_GROUPS.map(name => ({
-        id: generateId(),
-        name,
-        gradeConfig: {},
-    }));
+    const classGroups: ClassGroup[] = INITIAL_CLASS_GROUPS.map(name => {
+        const isFund2 = name.includes('Ano');
+        const isMedio = name.includes('Série');
+        const gradeConfig: Record<string, number> = {};
+
+        if (isFund2) {
+            subjects.forEach(sub => {
+                const count = defaultFund2Config[sub.name];
+                if (count) {
+                    gradeConfig[sub.id] = count;
+                }
+            });
+        } else if (isMedio) {
+            subjects.forEach(sub => {
+                const count = defaultMedioConfig[sub.name];
+                if (count) {
+                    gradeConfig[sub.id] = count;
+                }
+            });
+        }
+
+        return {
+            id: generateId(),
+            name,
+            gradeConfig,
+        };
+    });
 
     return { professors: Array.from(professorsMap.values()), subjects, classGroups };
 }

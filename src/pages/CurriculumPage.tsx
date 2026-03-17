@@ -1,12 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../store';
 import { Minus, Plus, GraduationCap, AlertCircle, Copy, ChevronDown, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Extrai o segmento do nome da turma (ex: '6º Ano A' -> '6º Ano')
+const getSegment = (name: string) => {
+    const lastSpace = name.lastIndexOf(' ');
+    if (lastSpace > 0 && name.length - lastSpace <= 3) {
+        return name.substring(0, lastSpace).trim();
+    }
+    return name;
+};
 
 export const CurriculumPage = () => {
     const { classGroups, subjects, updateClassSubjectConfig, applyConfigToClasses } = useStore();
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [showCopyMenu, setShowCopyMenu] = useState(false);
+    const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
     // Inicializar seleção
     useEffect(() => {
@@ -16,6 +26,46 @@ export const CurriculumPage = () => {
     }, [selectedClassId, classGroups]);
 
     const currentClass = classGroups.find(c => c.id === selectedClassId);
+
+    // Gerar opções de cópia dinamicamente a partir dos segmentos reais
+    const copyOptions = useMemo(() => {
+        const segmentMap = new Map<string, string[]>();
+        classGroups.forEach(c => {
+            const seg = getSegment(c.name);
+            if (!segmentMap.has(seg)) segmentMap.set(seg, []);
+            segmentMap.get(seg)!.push(c.id);
+        });
+
+        const options: { label: string; targetIds: string[]; danger?: boolean }[] = [];
+        segmentMap.forEach((ids, seg) => {
+            options.push({ label: seg, targetIds: ids });
+        });
+
+        // Adicionar opção "TODAS as Turmas"
+        options.push({
+            label: 'TODAS as Turmas',
+            targetIds: classGroups.map(c => c.id),
+            danger: true
+        });
+
+        return options;
+    }, [classGroups]);
+
+    const handleCopy = async (targetIds: string[], label: string) => {
+        if (!selectedClassId) return;
+        // Excluir a turma de origem da lista de destino
+        const targets = targetIds.filter(id => id !== selectedClassId);
+        if (targets.length === 0) {
+            alert('Nenhuma outra turma encontrada para este segmento.');
+            return;
+        }
+        if (window.confirm(`Aplicar configuração para ${targets.length} turma(s) de ${label}?`)) {
+            await applyConfigToClasses(selectedClassId, targets);
+            setShowCopyMenu(false);
+            setCopyMessage(`Configuração copiada para ${targets.length} turma(s) de ${label}!`);
+            setTimeout(() => setCopyMessage(null), 3000);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -42,6 +92,21 @@ export const CurriculumPage = () => {
                 </div>
             </div>
 
+            {/* Toast de sucesso */}
+            <AnimatePresence>
+                {copyMessage && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 shadow-sm"
+                    >
+                        <Check size={18} />
+                        {copyMessage}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {selectedClassId && (
                 <div className="relative">
                     <div className="flex justify-end mb-4">
@@ -63,46 +128,28 @@ export const CurriculumPage = () => {
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-50 origin-top-right"
                                 >
-                                    {[
-                                        { label: 'Infantil', filter: (n: string) => n.toLowerCase().startsWith('infantil') },
-                                        {
-                                            label: 'Fundamental I', filter: (n: string) => {
-                                                const lower = n.toLowerCase();
-                                                const normalized = n.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                                                return !lower.startsWith('infantil') && !normalized.includes('serie') && ['1', '2', '3', '4', '5'].some(d => n.includes(d));
-                                            }
-                                        },
-                                        {
-                                            label: 'Fundamental II', filter: (n: string) => {
-                                                const normalized = n.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                                                return !normalized.includes('serie') && ['6', '7', '8', '9'].some(d => n.includes(d));
-                                            }
-                                        },
-                                        {
-                                            label: 'Ensino Médio',
-                                            filter: (n: string) => n.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase().includes('serie')
-                                        },
-                                        { label: 'TODAS as Turmas', filter: () => true, danger: true },
-                                    ].map((opt, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={() => {
-                                                const targets = classGroups.filter(c => c.id !== selectedClassId && opt.filter(c.name));
-                                                if (targets.length === 0) {
-                                                    alert('Nenhuma turma encontrada para este filtro.');
-                                                    return;
-                                                }
-                                                if (window.confirm(`Aplicar configuração para ${targets.length} turma(s) de ${opt.label}?`)) {
-                                                    applyConfigToClasses(selectedClassId, targets.map(c => c.id));
-                                                    setShowCopyMenu(false);
-                                                }
-                                            }}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-between group ${opt.danger ? 'text-red-500 hover:bg-red-50' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'}`}
-                                        >
-                                            {opt.label}
-                                            <Check size={14} className="opacity-0 group-hover:opacity-100" />
-                                        </button>
-                                    ))}
+                                    {copyOptions.map((opt, idx) => {
+                                        const count = opt.targetIds.filter(id => id !== selectedClassId).length;
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => handleCopy(opt.targetIds, opt.label)}
+                                                disabled={count === 0}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-between group ${
+                                                    count === 0
+                                                        ? 'text-slate-300 cursor-not-allowed'
+                                                        : opt.danger
+                                                            ? 'text-red-500 hover:bg-red-50'
+                                                            : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'
+                                                }`}
+                                            >
+                                                <span>{opt.label}</span>
+                                                <span className={`text-xs ${count === 0 ? 'text-slate-300' : 'text-slate-400'}`}>
+                                                    {count} turma{count !== 1 ? 's' : ''}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
                                 </motion.div>
                             )}
                         </AnimatePresence>

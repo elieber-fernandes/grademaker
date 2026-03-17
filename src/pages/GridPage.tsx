@@ -2,8 +2,17 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { ScheduleSlot } from '../components/ScheduleSlot';
 import { DndContext, type DragEndEvent } from '@dnd-kit/core';
-import { ChevronDown, Printer, FileDown, Plus, School, LayoutGrid, Calendar } from 'lucide-react';
+import { ChevronDown, Printer, FileDown, Plus, School, LayoutGrid, Calendar, Filter } from 'lucide-react';
 import { DAYS, DAYS_SHORT, PERIODS, PERIOD_END_TIMES, NUM_PERIODS } from '../constants';
+
+// Extrai o segmento do nome da turma (ex: '6º Ano A' -> '6º Ano')
+const getSegment = (name: string) => {
+    const lastSpace = name.lastIndexOf(' ');
+    if (lastSpace > 0 && name.length - lastSpace <= 3) {
+        return name.substring(0, lastSpace).trim();
+    }
+    return name;
+};
 
 type ViewMode = 'class' | 'day';
 
@@ -13,6 +22,15 @@ export const GridView = () => {
     const [selectedDay, setSelectedDay] = useState<number>(0);
     const [viewMode, setViewMode] = useState<ViewMode>('class');
     const [newClassName, setNewClassName] = useState('');
+    const [selectedSegment, setSelectedSegment] = useState<string>('Todos');
+
+    // Segmentos únicos extraídos dos nomes das turmas
+    const segments = ['Todos', ...Array.from(new Set(classGroups.map(c => getSegment(c.name))))];
+
+    // Turmas filtradas pelo segmento selecionado
+    const filteredClassGroups = selectedSegment === 'Todos'
+        ? classGroups
+        : classGroups.filter(c => getSegment(c.name) === selectedSegment);
 
     const handleCreateClass = () => {
         if (newClassName) {
@@ -166,19 +184,38 @@ export const GridView = () => {
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-indigo-500 transition-colors" size={16} />
                             </div>
                         ) : (
-                            <div className="relative group">
-                                <select
-                                    aria-label="Selecionar Dia"
-                                    className="appearance-none bg-transparent pl-4 pr-10 py-2.5 rounded-xl font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 transition-colors w-48"
-                                    value={selectedDay}
-                                    onChange={(e) => setSelectedDay(parseInt(e.target.value))}
-                                >
-                                    {DAYS.map((day, i) => (
-                                        <option key={i} value={i}>{day}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-indigo-500 transition-colors" size={16} />
-                            </div>
+                            <>
+                                <div className="relative group">
+                                    <select
+                                        aria-label="Selecionar Dia"
+                                        className="appearance-none bg-transparent pl-4 pr-10 py-2.5 rounded-xl font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 transition-colors w-40"
+                                        value={selectedDay}
+                                        onChange={(e) => setSelectedDay(parseInt(e.target.value))}
+                                    >
+                                        {DAYS.map((day, i) => (
+                                            <option key={i} value={i}>{day}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-indigo-500 transition-colors" size={16} />
+                                </div>
+
+                                <div className="h-8 w-px bg-slate-200"></div>
+
+                                <div className="relative group flex items-center gap-1.5">
+                                    <Filter size={14} className="text-slate-400" />
+                                    <select
+                                        aria-label="Filtrar Segmento"
+                                        className="appearance-none bg-transparent pl-2 pr-8 py-2.5 rounded-xl font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 transition-colors w-36 text-sm"
+                                        value={selectedSegment}
+                                        onChange={(e) => setSelectedSegment(e.target.value)}
+                                    >
+                                        {segments.map(seg => (
+                                            <option key={seg} value={seg}>{seg}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                                </div>
+                            </>
                         )}
 
                         <div className="h-8 w-px bg-slate-200"></div>
@@ -265,7 +302,7 @@ export const GridView = () => {
                                     <th className="py-3 px-2 text-left font-bold text-slate-500 uppercase tracking-wider text-xs border-b-2 border-slate-200 sticky left-0 bg-white/80 backdrop-blur-sm z-10 w-16">
                                         {DAYS_SHORT[selectedDay]}
                                     </th>
-                                    {classGroups.map(cls => (
+                                    {filteredClassGroups.map(cls => (
                                         <th key={cls.id} className="py-3 px-2 text-center font-bold text-slate-700 text-xs uppercase tracking-wider border-b-2 border-slate-200 min-w-[80px]">
                                             {cls.name}
                                         </th>
@@ -280,7 +317,7 @@ export const GridView = () => {
                                                 <span className="text-sm">{PERIODS[period]}</span>
                                             </div>
                                         </td>
-                                        {classGroups.map(cls => {
+                                        {filteredClassGroups.map(cls => {
                                             const slotId = `${cls.id}:::${selectedDay}:::${period}`;
                                             const lesson = schedule.grid[slotId];
                                             const subject = lesson ? subjects.find(s => s.id === lesson.subjectId) : undefined;

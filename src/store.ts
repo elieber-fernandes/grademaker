@@ -42,6 +42,7 @@ interface AppState {
     addSubject: (name: string) => Promise<void>;
     addClassGroup: (name: string) => Promise<void>;
     updateClassSubjectConfig: (classId: string, subjectId: string, count: number) => Promise<void>;
+    updateClassShift: (classId: string, shift: 'M' | 'V') => Promise<void>;
 
     setSchedule: (schedule: Schedule) => Promise<void>;
     moveLesson: (lessonId: string, newTime: TimeSlot) => void;
@@ -77,14 +78,27 @@ export const useStore = create<AppState>()(
                     const hasCloudData = (profRes.data?.length || 0) > 0 || (subRes.data?.length || 0) > 0 || (classRes.data?.length || 0) > 0;
 
                     if (hasCloudData) {
+                        // Migrate legacy '6 period' availability to '11 period' availability
+                        const migratedProfessors = (profRes.data || []).map(p => {
+                            if (p.availability && p.availability.length > 0 && p.availability[0].length === 6) {
+                                // Add 5 new true slots to the end of each day
+                                return {
+                                    ...p,
+                                    availability: p.availability.map((day: boolean[]) => [...day, ...Array(5).fill(true)])
+                                };
+                            }
+                            return p;
+                        });
+
                         const mappedClassGroups = (classRes.data || []).map(c => ({
                             id: c.id,
                             name: c.name,
+                            shift: c.shift || 'M',
                             gradeConfig: c.grade_config || {}
                         }));
 
                         set({
-                            professors: profRes.data || [],
+                            professors: migratedProfessors,
                             subjects: subRes.data || [],
                             classGroups: sortClassGroups(mappedClassGroups),
                             schedule: schedRes.data ? { grid: schedRes.data.grid } : { grid: {} },
@@ -102,7 +116,7 @@ export const useStore = create<AppState>()(
                                     await supabase.from('subjects').upsert(state.subjects);
                                 }
                                 if (state.classGroups.length) {
-                                    await supabase.from('class_groups').upsert(state.classGroups.map(c => ({ id: c.id, name: c.name, grade_config: c.gradeConfig })));
+                                    await supabase.from('class_groups').upsert(state.classGroups.map(c => ({ id: c.id, name: c.name, shift: c.shift, grade_config: c.gradeConfig })));
                                 }
                                 if (state.professors.length) {
                                     await supabase.from('professors').upsert(state.professors.map(p => ({ id: p.id, name: p.name, subjects: p.subjects, availability: p.availability })));
@@ -142,12 +156,13 @@ export const useStore = create<AppState>()(
             importBatch: async (data) => {
                 const state = get();
                 const newSubjects = (data.subjects || []).map(name => ({ id: generateId(), name }));
-                const newClasses = (data.classGroups || []).map(name => ({ id: generateId(), name, gradeConfig: {} }));
+                const newClasses = (data.classGroups || []).map(name => ({ id: generateId(), name, shift: 'M' as const, gradeConfig: {} }));
                 const newProfessors = (data.professors || []).map(name => ({
                     id: generateId(),
                     name,
                     subjects: [],
-                    availability: Array(5).fill(null).map(() => Array(6).fill(true))
+                    // 11 slots total (6 M + 5 V)
+                    availability: Array(5).fill(null).map(() => Array(11).fill(true))
                 }));
 
                 set({
@@ -157,7 +172,7 @@ export const useStore = create<AppState>()(
                 });
 
                 if (newSubjects.length) await supabase.from('subjects').insert(newSubjects);
-                if (newClasses.length) await supabase.from('class_groups').insert(newClasses.map(c => ({ id: c.id, name: c.name, grade_config: c.gradeConfig })));
+                if (newClasses.length) await supabase.from('class_groups').insert(newClasses.map(c => ({ id: c.id, name: c.name, shift: c.shift, grade_config: c.gradeConfig })));
                 if (newProfessors.length) await supabase.from('professors').insert(newProfessors.map(p => ({ id: p.id, name: p.name, subjects: p.subjects, availability: p.availability })));
             },
 
@@ -167,7 +182,7 @@ export const useStore = create<AppState>()(
 
                 const newClasses = classes
                     .filter(name => !state.classGroups.find(c => c.name === name))
-                    .map(name => ({ id: generateId(), name, gradeConfig: {} }));
+                    .map(name => ({ id: generateId(), name, shift: 'M' as const, gradeConfig: {} }));
 
                 const uniqueSubjects = new Set<string>();
                 pairs.forEach(p => {
@@ -191,7 +206,7 @@ export const useStore = create<AppState>()(
                             id: generateId(),
                             name: professorName,
                             subjects: [],
-                            availability: Array(5).fill(null).map(() => Array(6).fill(true))
+                            availability: Array(5).fill(null).map(() => Array(11).fill(true))
                         };
                         updatedProfessors.push(professor);
                     }
@@ -219,7 +234,7 @@ export const useStore = create<AppState>()(
                 });
 
                 // Supabase Sync
-                if (newClasses.length) await supabase.from('class_groups').insert(newClasses.map(c => ({ id: c.id, name: c.name, grade_config: c.gradeConfig })));
+                if (newClasses.length) await supabase.from('class_groups').insert(newClasses.map(c => ({ id: c.id, name: c.name, shift: c.shift, grade_config: c.gradeConfig })));
                 if (newSubjects.length) await supabase.from('subjects').insert(newSubjects);
                 if (updatedProfessors.length) await supabase.from('professors').upsert(updatedProfessors.map(p => ({ id: p.id, name: p.name, subjects: p.subjects, availability: p.availability })));
             },
@@ -229,7 +244,7 @@ export const useStore = create<AppState>()(
                     id: generateId(),
                     name,
                     subjects: subjectIds,
-                    availability: Array(5).fill(null).map(() => Array(6).fill(true))
+                    availability: Array(5).fill(null).map(() => Array(11).fill(true))
                 };
                 set(state => ({ professors: [...state.professors, newProf] }));
                 await supabase.from('professors').insert(newProf);
@@ -249,9 +264,9 @@ export const useStore = create<AppState>()(
             },
 
             addClassGroup: async (name) => {
-                const newClass = { id: generateId(), name, gradeConfig: {} };
+                const newClass = { id: generateId(), name, shift: 'M' as const, gradeConfig: {} };
                 set(state => ({ classGroups: sortClassGroups([...state.classGroups, newClass]) }));
-                await supabase.from('class_groups').insert({ id: newClass.id, name: newClass.name, grade_config: newClass.gradeConfig });
+                await supabase.from('class_groups').insert({ id: newClass.id, name: newClass.name, shift: newClass.shift, grade_config: newClass.gradeConfig });
             },
 
             updateClassSubjectConfig: async (classId, subjectId, count) => {
@@ -267,6 +282,16 @@ export const useStore = create<AppState>()(
                     )
                 });
                 await supabase.from('class_groups').update({ grade_config: newConfig }).eq('id', classId);
+            },
+
+            updateClassShift: async (classId, shift) => {
+                const state = get();
+                set({
+                    classGroups: state.classGroups.map(c =>
+                        c.id === classId ? { ...c, shift } : c
+                    )
+                });
+                await supabase.from('class_groups').update({ shift }).eq('id', classId);
             },
 
             setSchedule: async (schedule) => {

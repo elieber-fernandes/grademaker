@@ -18,6 +18,7 @@ export type Subject = {
 export type ClassGroup = {
     id: string;
     name: string; // ex: "1A", "3B"
+    shift: 'M' | 'V'; // Matutino ou Vespertino
     gradeConfig: Record<string, number>; // ID da Disciplina -> Número de aulas por semana
 };
 

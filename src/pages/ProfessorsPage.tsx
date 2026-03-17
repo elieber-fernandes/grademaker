@@ -235,8 +235,8 @@ export const ProfessorsPage = () => {
                                 </button>
                             </div>
 
-                            <div className="p-4 md:p-8 overflow-y-auto">
-                                <div className="min-w-[400px]">
+                            <div className="p-4 md:p-8 overflow-y-auto overflow-x-auto">
+                                <div className="min-w-[500px]">
                                     <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1 md:gap-2 mb-2">
                                     <div className="p-2"></div>
                                     {['Seg', 'Ter', 'Qua', 'Qui', 'Sex'].map(day => (
@@ -245,17 +245,23 @@ export const ProfessorsPage = () => {
                                         </div>
                                     ))}
 
-                                    {Array(NUM_PERIODS).fill(0).map((_, periodIndex) => (
-                                        <Fragment key={periodIndex}>
-                                            <div className="flex items-center justify-end pr-4 text-xs font-bold text-slate-400">
-                                                {PERIODS[periodIndex]}
+                                    {/* MATUTINO */}
+                                    <div className="col-span-6 bg-gradient-to-r from-orange-50 to-amber-50 p-2 text-center text-xs font-bold text-amber-700 uppercase rounded-lg mt-2 mb-2 shadow-sm border border-orange-100">
+                                        Matutino (Manhã)
+                                    </div>
+                                    {Array(NUM_PERIODS['M']).fill(0).map((_, i) => {
+                                        const periodIndex = i;
+                                        return (
+                                        <Fragment key={`M-${i}`}>
+                                            <div className="flex items-center justify-end pr-2 md:pr-4 text-[10px] md:text-xs font-bold text-slate-400">
+                                                {PERIODS['M'][i]}
                                             </div>
                                             {tempAvailability.map((daySlots, dayIndex) => (
                                                 <button
-                                                    key={`${dayIndex}-${periodIndex}`}
+                                                    key={`M-${dayIndex}-${periodIndex}`}
                                                     onClick={() => toggleAvailabilitySlot(dayIndex, periodIndex)}
-                                                    title={`Alternar ${['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][dayIndex]} - ${periodIndex + 1}º Horário`}
-                                                    aria-label={`Alternar disponibilidade para ${['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][dayIndex]}, ${periodIndex + 1}º Horário`}
+                                                    title={`Alternar ${['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][dayIndex]} - ${i + 1}º Horário (Manhã)`}
+                                                    aria-label={`Alternar disponibilidade para ${['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][dayIndex]}, ${i + 1}º Horário (Manhã)`}
                                                     className={`
                                                         aspect-video rounded-lg transition-all border-2 flex items-center justify-center
                                                         ${daySlots[periodIndex]
@@ -268,7 +274,40 @@ export const ProfessorsPage = () => {
                                                 </button>
                                             ))}
                                         </Fragment>
-                                    ))}
+                                        );
+                                    })}
+
+                                    {/* VESPERTINO */}
+                                    <div className="col-span-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-2 text-center text-xs font-bold text-indigo-700 uppercase rounded-lg mt-4 mb-2 shadow-sm border border-blue-100">
+                                        Vespertino (Tarde)
+                                    </div>
+                                    {Array(NUM_PERIODS['V']).fill(0).map((_, i) => {
+                                        const periodIndex = i + NUM_PERIODS['M']; // 6 to 10
+                                        return (
+                                        <Fragment key={`V-${i}`}>
+                                            <div className="flex items-center justify-end pr-2 md:pr-4 text-[10px] md:text-xs font-bold text-slate-400">
+                                                {PERIODS['V'][i]}
+                                            </div>
+                                            {tempAvailability.map((daySlots, dayIndex) => (
+                                                <button
+                                                    key={`V-${dayIndex}-${periodIndex}`}
+                                                    onClick={() => toggleAvailabilitySlot(dayIndex, periodIndex)}
+                                                    title={`Alternar ${['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][dayIndex]} - ${i + 1}º Horário (Tarde)`}
+                                                    aria-label={`Alternar disponibilidade para ${['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][dayIndex]}, ${i + 1}º Horário (Tarde)`}
+                                                    className={`
+                                                        aspect-video rounded-lg transition-all border-2 flex items-center justify-center
+                                                        ${daySlots[periodIndex]
+                                                            ? 'bg-indigo-100 border-indigo-200 text-indigo-600 hover:bg-indigo-200'
+                                                            : 'bg-slate-50 border-slate-100 text-slate-300 hover:bg-slate-100 hover:border-slate-200'
+                                                        }
+                                                    `}
+                                                >
+                                                    {daySlots[periodIndex] ? <Check size={20} strokeWidth={3} /> : <X size={16} />}
+                                                </button>
+                                            ))}
+                                        </Fragment>
+                                        );
+                                    })}
                                     </div>
                                 </div>
 

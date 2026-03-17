@@ -23,14 +23,23 @@ export const GridView = () => {
     const [viewMode, setViewMode] = useState<ViewMode>('class');
     const [newClassName, setNewClassName] = useState('');
     const [selectedSegment, setSelectedSegment] = useState<string>('Todos');
+    const [selectedShift, setSelectedShift] = useState<'M' | 'V'>('M');
 
-    // Segmentos únicos extraídos dos nomes das turmas
+    // Obter turma selecionada
+    const currentClass = classGroups.find(c => c.id === selectedClassId);
+
+    // No modo "Turma", forçamos o turno visualizado a ser o turno da turma selecionada
+    const activeShift = viewMode === 'class' ? (currentClass?.shift || 'M') : selectedShift;
+
+    // Turmas filtradas pelo segmento E turno selecionado (para visão por dia)
+    const filteredClassGroups = classGroups.filter(c => {
+        const matchesSegment = selectedSegment === 'Todos' || getSegment(c.name) === selectedSegment;
+        const matchesShift = c.shift === activeShift;
+        return matchesSegment && matchesShift;
+    });
+
+    // Segmentos únicos
     const segments = ['Todos', ...Array.from(new Set(classGroups.map(c => getSegment(c.name))))];
-
-    // Turmas filtradas pelo segmento selecionado
-    const filteredClassGroups = selectedSegment === 'Todos'
-        ? classGroups
-        : classGroups.filter(c => getSegment(c.name) === selectedSegment);
 
     const handleCreateClass = () => {
         if (newClassName) {
@@ -45,8 +54,6 @@ export const GridView = () => {
             setSelectedClassId(classGroups[0].id);
         }
     }, [selectedClassId, classGroups]);
-
-    const currentClass = classGroups.find(c => c.id === selectedClassId);
 
     const handleDragEnd = (event: DragEndEvent) => {
         console.log('Drag ended', event);
@@ -64,7 +71,10 @@ export const GridView = () => {
             if (parts.length < 3) return;
 
             const dayName = DAYS[parseInt(parts[1])];
-            const periodName = PERIODS[parseInt(parts[2])];
+            const periodIdx = parseInt(parts[2]);
+            const shift = periodIdx < NUM_PERIODS['M'] ? 'M' : 'V';
+            const relativeIdx = shift === 'M' ? periodIdx : periodIdx - NUM_PERIODS['M'];
+            const periodName = PERIODS[shift][relativeIdx];
             const className = classGroups.find(c => c.id === lesson.classGroupId)?.name || 'N/A';
             const subjectName = subjects.find(s => s.id === lesson.subjectId)?.name || 'N/A';
             const profName = professors.find(p => p.id === lesson.professorId)?.name || 'N/A';
@@ -82,7 +92,9 @@ export const GridView = () => {
         document.body.removeChild(link);
     };
 
-    const periods = Array.from({ length: NUM_PERIODS }, (_, i) => i);
+    const currentNumPeriods = NUM_PERIODS[activeShift];
+    const startIndex = activeShift === 'M' ? 0 : NUM_PERIODS['M'];
+    const periods = Array.from({ length: currentNumPeriods }, (_, i) => startIndex + i);
 
     if (classGroups.length === 0) {
         return (
@@ -136,6 +148,32 @@ export const GridView = () => {
                     </button>
 
                     <div className="h-8 w-px bg-slate-200 mx-1"></div>
+
+                    {/* Filtro de Turno */}
+                    <div className="flex bg-slate-100 rounded-xl p-1 border border-slate-200">
+                        <button
+                            onClick={() => setSelectedShift('M')}
+                            className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
+                                selectedShift === 'M'
+                                    ? 'bg-white text-orange-500 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            Manhã
+                        </button>
+                        <button
+                            onClick={() => setSelectedShift('V')}
+                            className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
+                                selectedShift === 'V'
+                                    ? 'bg-white text-indigo-500 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            Tarde
+                        </button>
+                    </div>
+
+                    <div className="hidden md:block h-8 w-px bg-slate-200"></div>
 
                     {/* Toggle de Visualização */}
                     <div className="flex bg-slate-100 rounded-xl p-1 border border-slate-200">
@@ -264,8 +302,8 @@ export const GridView = () => {
                                 <div key={period} className="contents group">
                                     {/* Coluna de Horário */}
                                     <div className="flex flex-col items-end justify-center py-2 pr-4 text-right">
-                                        <span className="font-bold text-slate-700 text-lg print:text-black">{PERIODS[period]}</span>
-                                        <span className="text-xs text-slate-400 font-medium print:text-gray-600">até {PERIOD_END_TIMES[period]}</span>
+                                        <span className="font-bold text-slate-700 text-lg print:text-black">{PERIODS[activeShift][period - startIndex]}</span>
+                                        <span className="text-xs text-slate-400 font-medium print:text-gray-600">até {PERIOD_END_TIMES[activeShift][period - startIndex]}</span>
                                     </div>
 
                                     {/* Dias para este período */}
@@ -314,7 +352,7 @@ export const GridView = () => {
                                     <tr key={period} className="hover:bg-indigo-50/30 transition-colors">
                                         <td className="py-3 px-2 font-bold text-slate-600 border-b border-slate-100 sticky left-0 bg-white/80 backdrop-blur-sm z-10">
                                             <div className="flex flex-col">
-                                                <span className="text-sm">{PERIODS[period]}</span>
+                                                <span className="text-sm">{PERIODS[activeShift][period - startIndex]}</span>
                                             </div>
                                         </td>
                                         {filteredClassGroups.map(cls => {

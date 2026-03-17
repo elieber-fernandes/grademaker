@@ -19,12 +19,12 @@ export const generateSchedule = (
     const startTime = Date.now();
 
     // ===== 1. Montar lista de aulas pendentes =====
-    const pendingLessons: { classId: string; subjectId: string }[] = [];
+    const pendingLessons: { classId: string; subjectId: string; shift: 'M' | 'V' }[] = [];
 
     classGroups.forEach(cls => {
         Object.entries(cls.gradeConfig).forEach(([subId, count]) => {
             for (let i = 0; i < count; i++) {
-                pendingLessons.push({ classId: cls.id, subjectId: subId });
+                pendingLessons.push({ classId: cls.id, subjectId: subId, shift: cls.shift });
             }
         });
     });
@@ -63,11 +63,19 @@ export const generateSchedule = (
         return prof.availability[day]?.[period] !== false;
     };
 
-    // ===== 5. Gerar lista de slots embaralhados por turma =====
-    const slotOrder: { d: number; p: number }[] = [];
+    // ===== 5. Gerar lista de slots por turno =====
+    const slotOrderM: { d: number; p: number }[] = [];
     for (let d = 0; d < NUM_DAYS; d++) {
-        for (let p = 0; p < NUM_PERIODS; p++) {
-            slotOrder.push({ d, p });
+        for (let p = 0; p < NUM_PERIODS['M']; p++) {
+            slotOrderM.push({ d, p });
+        }
+    }
+
+    const slotOrderV: { d: number; p: number }[] = [];
+    for (let d = 0; d < NUM_DAYS; d++) {
+        for (let p = 0; p < NUM_PERIODS['V']; p++) {
+            // Professores tem 11 slots. 0-5 = M, 6-10 = V
+            slotOrderV.push({ d, p: p + NUM_PERIODS['M'] });
         }
     }
 
@@ -96,7 +104,8 @@ export const generateSchedule = (
 
         // Embaralhar professores e slots para variar resultados
         const shuffledProfs = shuffle([...possibleProfs]);
-        const shuffledSlots = shuffle([...slotOrder]);
+        const baseSlots = task.shift === 'M' ? slotOrderM : slotOrderV;
+        const shuffledSlots = shuffle([...baseSlots]);
 
         for (const prof of shuffledProfs) {
             for (const { d, p } of shuffledSlots) {

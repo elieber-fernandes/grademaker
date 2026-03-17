@@ -35,7 +35,7 @@ function App() {
 
   useEffect(() => {
     if (session) {
-      fetchInitialData();
+       fetchInitialData();
     }
   }, [fetchInitialData, session]);
 

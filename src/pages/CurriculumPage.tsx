@@ -13,7 +13,7 @@ const getSegment = (name: string) => {
 };
 
 export const CurriculumPage = () => {
-    const { classGroups, subjects, updateClassSubjectConfig, applyConfigToClasses } = useStore();
+    const { classGroups, subjects, updateClassSubjectConfig, applyConfigToClasses, updateClassShift } = useStore();
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [showCopyMenu, setShowCopyMenu] = useState(false);
     const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -76,19 +76,38 @@ export const CurriculumPage = () => {
                     <p className="text-slate-500 font-medium">Defina a carga horária de cada turma</p>
                 </div>
 
-                <div className="bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2">
-                    <GraduationCap className="text-indigo-500 ml-3" size={20} />
-                    <select
-                        value={selectedClassId || ''}
-                        onChange={(e) => setSelectedClassId(e.target.value)}
-                        className="bg-transparent py-2.5 pr-8 pl-2 font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded-xl transition-colors min-w-[200px]"
-                        aria-label="Selecionar turma"
-                        title="Selecionar turma"
-                    >
-                        {classGroups.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
+                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                    {currentClass && (
+                        <div className="bg-white p-1 rounded-2xl border border-slate-100 shadow-sm flex items-center text-sm font-bold">
+                            <button
+                                onClick={() => updateClassShift(currentClass.id, 'M')}
+                                className={`px-4 py-2 rounded-xl transition-all ${currentClass.shift === 'M' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                Manhã
+                            </button>
+                            <button
+                                onClick={() => updateClassShift(currentClass.id, 'V')}
+                                className={`px-4 py-2 rounded-xl transition-all ${currentClass.shift === 'V' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                Tarde
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2">
+                        <GraduationCap className="text-indigo-500 ml-3" size={20} />
+                        <select
+                            value={selectedClassId || ''}
+                            onChange={(e) => setSelectedClassId(e.target.value)}
+                            className="bg-transparent py-2.5 pr-8 pl-2 font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded-xl transition-colors min-w-[200px]"
+                            aria-label="Selecionar turma"
+                            title="Selecionar turma"
+                        >
+                            {classGroups.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 

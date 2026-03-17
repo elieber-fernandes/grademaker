@@ -48,7 +48,7 @@ const INITIAL_CLASS_GROUPS: string[] = [
 /**
  * Gera os dados de seed localmente (sem depender do Supabase).
  */
-function buildSeedData(): { professors: Professor[]; subjects: Subject[]; classGroups: ClassGroup[] } {
+export function buildSeedData(): { professors: Professor[]; subjects: Subject[]; classGroups: ClassGroup[] } {
     // 1. Extrair disciplinas únicas
     const uniqueSubjectNames = [...new Set(INITIAL_PAIRS.map(p => p.subjectName))];
     const subjects: Subject[] = uniqueSubjectNames.map(name => ({

@@ -42,7 +42,26 @@ export const generateSchedule = (
         });
     });
 
-    // ===== 3. Ordenar por restrição (MRV - Minimum Remaining Values) =====
+    // ===== 3. Sanity Check: Capacidade Disciplina vs Professores =====
+    for (const subId of profsBySubject.keys()) {
+        const totalLessonsNeeded = pendingLessons.filter(l => l.subjectId === subId).length;
+        const possibleProfs = profsBySubject.get(subId) || [];
+        
+        // Total de slots livres (disponibilidade matrix) para todos os professores que dão essa matéria
+        let totalSlotsAvailable = 0;
+        possibleProfs.forEach(p => {
+            p.availability.forEach(day => {
+                day.forEach(slot => { if (slot) totalSlotsAvailable++; });
+            });
+        });
+
+        if (totalLessonsNeeded > totalSlotsAvailable) {
+            console.error(`IMPOSSÍVEL: ${totalLessonsNeeded} aulas necessárias para disciplina ${subId}, mas apenas ${totalSlotsAvailable} slots de professores disponíveis.`);
+            return null; // Mata o processo cedo
+        }
+    }
+
+    // ===== 4. Ordenar por restrição (MRV - Minimum Remaining Values) =====
     // Disciplinas com menos professores disponíveis primeiro
     pendingLessons.sort((a, b) => {
         const profsA = profsBySubject.get(a.subjectId)?.length || 0;
@@ -86,7 +105,7 @@ export const generateSchedule = (
         // Timeout check a cada 5000 tentativas
         if (++attempts % 5000 === 0) {
             if (Date.now() - startTime > MAX_TIME_MS) {
-                return false;
+                throw new Error('TIMEOUT');
             }
         }
 
@@ -152,14 +171,20 @@ export const generateSchedule = (
         attempts = 0;
 
         // Re-embaralhar apenas a ordem dentro de cada nível de restrição
-        // (mantém MRV mas varia dentro do mesmo nível)
-
-        if (solve(0)) {
-            console.log(`Grade gerada com sucesso na tentativa ${retry + 1}, ${attempts} iterações`);
-            return { grid };
+        try {
+            if (solve(0)) {
+                console.log(`Grade gerada com sucesso na tentativa ${retry + 1}, ${attempts} iterações`);
+                return { grid };
+            }
+        } catch (e) {
+            if (e instanceof Error && e.message === 'TIMEOUT') {
+                console.warn(`Tentativa ${retry + 1} abortada por timeout após ${attempts} iterações`);
+                break; // Se deu timeout, não adianta tentar de novo, a árvore é muito grande ou impossível
+            }
+            throw e;
         }
 
-        console.warn(`Tentativa ${retry + 1} falhou após ${attempts} iterações`);
+        console.warn(`Tentativa ${retry + 1} falhou após ${attempts} iterações sem encontrar solução válida`);
     }
 
     return null;

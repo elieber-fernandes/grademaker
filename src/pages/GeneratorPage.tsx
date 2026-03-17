@@ -9,6 +9,7 @@ export const GeneratorPage = () => {
     const { subjects, professors, classGroups, setSchedule, schedule } = useStore();
     const [isGenerating, setIsGenerating] = useState(false);
     const [resultMessage, setResultMessage] = useState<string | null>(null);
+    const [errorDetails, setErrorDetails] = useState<string | null>(null);
     const [success, setSuccess] = useState<boolean | null>(null);
 
     const conflicts = findConflicts(schedule, professors);
@@ -21,16 +22,18 @@ export const GeneratorPage = () => {
         // Dar tempo para UI atualizar
         setTimeout(() => {
             const start = performance.now();
-            const newSchedule = generateSchedule(professors, classGroups);
+            const result = generateSchedule(professors, classGroups);
             const end = performance.now();
 
-            if (newSchedule) {
-                setSchedule(newSchedule);
+            if (result.schedule) {
+                setSchedule(result.schedule);
                 setSuccess(true);
                 setResultMessage(`Grade gerada com sucesso em ${(end - start).toFixed(2)}ms!`);
+                setErrorDetails(null);
             } else {
                 setSuccess(false);
-                setResultMessage('Não foi possível gerar uma grade válida com as restrições atuais.');
+                setResultMessage(result.error || 'Não foi possível gerar uma grade válida.');
+                setErrorDetails(result.details || null);
             }
             setIsGenerating(false);
         }, 800); // Atraso artificial para mostrar animação
@@ -119,6 +122,11 @@ export const GeneratorPage = () => {
                             <div>
                                 <p className="font-bold text-lg">{success ? 'Sucesso!' : 'Algo deu errado'}</p>
                                 <p className="text-sm opacity-90">{resultMessage}</p>
+                                {errorDetails && (
+                                    <p className="mt-2 p-2 bg-red-100/50 rounded-lg text-xs font-medium border border-red-200/50">
+                                        {errorDetails}
+                                    </p>
+                                )}
                             </div>
                         </motion.div>
                     )}

@@ -33,4 +33,8 @@ export type Schedule = {
     // Chave do Mapa: "idTurma-dia-período" -> Aula
     // Isso permite consultar o que uma turma específica está fazendo em um horário específico
     grid: Record<string, Lesson>;
+};export type SolverResult = {
+    schedule: Schedule | null;
+    error: string | null;
+    details?: string;
 };

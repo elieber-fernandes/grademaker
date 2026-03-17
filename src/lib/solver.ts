@@ -1,4 +1,4 @@
-import type { Schedule, Professor, ClassGroup, SolverResult } from '../types';
+import type { Schedule, Professor, ClassGroup, SolverResult, Subject } from '../types';
 import { NUM_PERIODS, NUM_DAYS } from '../constants';
 
 const MAX_TIME_MS = 6000; // Timeout de 6 segundos (reduzido para resposta mais rápida)
@@ -14,9 +14,11 @@ const shuffle = <T>(arr: T[]): T[] => {
 
 export const generateSchedule = (
     professors: Professor[],
-    classGroups: ClassGroup[]
+    classGroups: ClassGroup[],
+    subjects: Subject[]
 ): SolverResult => {
     const startTime = Date.now();
+    const subjectMap = new Map(subjects.map(s => [s.id, s.name]));
 
     // ===== 1. Montar lista de aulas pendentes =====
     const pendingLessons: { classId: string; subjectId: string; shift: 'M' | 'V' }[] = [];
@@ -61,11 +63,12 @@ export const generateSchedule = (
         const lessonsV = pendingLessons.filter(l => l.subjectId === subId && l.shift === 'V').length;
         
         const possibleProfs = profsBySubject.get(subId) || [];
+        const subjectName = subjectMap.get(subId) || subId;
         
         if (possibleProfs.length === 0 && (lessonsM + lessonsV > 0)) {
             return {
                 schedule: null,
-                error: `Nenhum professor cadastrado para a disciplina ${subId}.`,
+                error: `Nenhum professor cadastrado para a disciplina ${subjectName}.`,
                 details: "Cadastre um professor ou remova a disciplina da matriz curricular."
             };
         }
@@ -86,14 +89,14 @@ export const generateSchedule = (
             return {
                 schedule: null,
                 error: `Capacidade insuficiente para a disciplina selecionada.`,
-                details: `A disciplina ${subId} precisa de ${lessonsM} aulas no turno MATUTINO, mas os professores disponíveis só possuem ${slotsAvailableM} horários livres nesse turno.`
+                details: `A disciplina ${subjectName} precisa de ${lessonsM} aulas no turno MATUTINO, mas os professores disponíveis só possuem ${slotsAvailableM} horários livres nesse turno.`
             };
         }
         if (lessonsV > slotsAvailableV) {
             return {
                 schedule: null,
                 error: `Capacidade insuficiente para a disciplina selecionada.`,
-                details: `A disciplina ${subId} precisa de ${lessonsV} aulas no turno VESPERTINO, mas os professores disponíveis só possuem ${slotsAvailableV} horários livres nesse turno.`
+                details: `A disciplina ${subjectName} precisa de ${lessonsV} aulas no turno VESPERTINO, mas os professores disponíveis só possuem ${slotsAvailableV} horários livres nesse turno.`
             };
         }
     }

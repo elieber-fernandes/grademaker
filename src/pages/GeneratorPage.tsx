@@ -22,7 +22,7 @@ export const GeneratorPage = () => {
         // Dar tempo para UI atualizar
         setTimeout(() => {
             const start = performance.now();
-            const result = generateSchedule(professors, classGroups);
+            const result = generateSchedule(professors, classGroups, subjects);
             const end = performance.now();
 
             if (result.schedule) {

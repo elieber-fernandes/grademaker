@@ -7,7 +7,6 @@ export const LoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [isSignUp, setIsSignUp] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
 
@@ -18,20 +17,11 @@ export const LoginPage = () => {
         setMessage('');
 
         try {
-            if (isSignUp) {
-                const { error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                });
-                if (error) throw error;
-                setMessage('Verifique seu email para confirmar o cadastro!');
-            } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-                if (error) throw error;
-            }
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+            if (error) throw error;
         } catch (err: any) {
             setError(err.message || 'Erro ao autenticar');
         } finally {
@@ -103,18 +93,8 @@ export const LoginPage = () => {
                         disabled={loading}
                         className="w-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-medium py-3 rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all flex justify-center items-center gap-2 group disabled:opacity-70"
                     >
-                        {loading ? <Loader2 className="animate-spin" size={20} /> : (isSignUp ? 'Criar Conta' : 'Entrar na Conta')}
+                        {loading ? <Loader2 className="animate-spin" size={20} /> : 'Entrar na Conta'}
                     </button>
-                    
-                    <div className="text-center mt-6">
-                        <button
-                            type="button"
-                            onClick={() => setIsSignUp(!isSignUp)}
-                            className="text-slate-400 hover:text-white text-sm transition-colors"
-                        >
-                            {isSignUp ? 'Já tem uma conta? Entre aqui' : 'Não tem conta? Crie uma'}
-                        </button>
-                    </div>
                 </form>
             </motion.div>
         </div>

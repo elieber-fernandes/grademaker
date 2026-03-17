@@ -175,10 +175,10 @@ export const CurriculumPage = () => {
                                     layout
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    className={`glass-card p-6 flex items-center justify-between border-2 transition-all group ${count > 0 ? 'border-indigo-500/20 bg-indigo-50/10' : 'border-transparent'
+                                    className={`glass-card p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-2 transition-all group ${count > 0 ? 'border-indigo-500/20 bg-indigo-50/10' : 'border-transparent'
                                         }`}
                                 >
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-3 md:gap-4">
                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold shadow-sm transition-colors ${count > 0 ? 'bg-indigo-500 text-white' : 'bg-white text-slate-300'
                                             }`}>
                                             {subject.name.substring(0, 2).toUpperCase()}
@@ -193,7 +193,7 @@ export const CurriculumPage = () => {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-3 bg-white rounded-xl p-1 shadow-sm border border-slate-100">
+                                    <div className="flex items-center justify-between w-full sm:w-auto gap-3 bg-white rounded-xl p-1 shadow-sm border border-slate-100">
                                         <button
                                             onClick={() => currentClass && updateClassSubjectConfig(currentClass.id, subject.id, Math.max(0, count - 1))}
                                             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"

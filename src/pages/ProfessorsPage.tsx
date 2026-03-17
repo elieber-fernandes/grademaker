@@ -212,7 +212,7 @@ export const ProfessorsPage = () => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden"
+                            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col"
                             onClick={e => e.stopPropagation()}
                         >
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -235,8 +235,9 @@ export const ProfessorsPage = () => {
                                 </button>
                             </div>
 
-                            <div className="p-8">
-                                <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-2 mb-2">
+                            <div className="p-4 md:p-8 overflow-y-auto">
+                                <div className="min-w-[400px]">
+                                    <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1 md:gap-2 mb-2">
                                     <div className="p-2"></div>
                                     {['Seg', 'Ter', 'Qua', 'Qui', 'Sex'].map(day => (
                                         <div key={day} className="text-center font-bold text-slate-600 text-sm p-2 uppercase tracking-wider">
@@ -268,9 +269,10 @@ export const ProfessorsPage = () => {
                                             ))}
                                         </Fragment>
                                     ))}
+                                    </div>
                                 </div>
 
-                                <div className="flex justify-between items-center mt-8 pt-6 border-t border-slate-100">
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 md:mt-8 pt-6 border-t border-slate-100">
                                     <div className="flex gap-4 text-sm">
                                         <div className="flex items-center gap-2 text-indigo-600 font-bold">
                                             <div className="w-4 h-4 rounded bg-indigo-100 border border-indigo-200 flex items-center justify-center">
@@ -286,16 +288,16 @@ export const ProfessorsPage = () => {
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-2 w-full sm:w-auto">
                                         <button
                                             onClick={() => setEditingProfId(null)}
-                                            className="px-5 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors"
+                                            className="flex-1 sm:flex-none px-4 md:px-5 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors"
                                         >
                                             Cancelar
                                         </button>
                                         <button
                                             onClick={saveAvailability}
-                                            className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 hover:-translate-y-0.5 transition-all"
+                                            className="flex-1 sm:flex-none px-4 md:px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 hover:-translate-y-0.5 transition-all text-sm md:text-base"
                                         >
                                             Salvar Alterações
                                         </button>

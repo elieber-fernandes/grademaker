@@ -10,7 +10,8 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children, activeTab, setActiveTab }: LayoutProps) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isDesktopExpanded, setIsDesktopExpanded] = useState(true);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: Calendar },
@@ -18,107 +19,163 @@ export const Layout = ({ children, activeTab, setActiveTab }: LayoutProps) => {
         { id: 'subjects', label: 'Disciplinas', icon: BookOpen },
         { id: 'classes', label: 'Turmas', icon: GraduationCap },
         { id: 'curriculum', label: 'Currículo', icon: Library },
-        { id: 'generate', label: 'Gerar Grade', icon: Sparkles }, // Mudado para Sparkles para sensação de "Mágica"
+        { id: 'generate', label: 'Gerar Grade', icon: Sparkles },
         { id: 'setup', label: 'Importar', icon: Upload },
     ];
 
+    const NavLinks = ({ isExpanded, isMobile = false }: { isExpanded: boolean, isMobile?: boolean }) => (
+        <nav className="flex-1 px-4 space-y-2 py-4 overflow-y-auto">
+            {navItems.map((item) => {
+                const isActive = activeTab === item.id;
+                return (
+                    <button
+                        key={item.id}
+                        onClick={() => {
+                            setActiveTab(item.id);
+                            if (isMobile) setIsMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 relative group overflow-hidden ${isActive
+                            ? 'text-white shadow-lg shadow-indigo-900/20'
+                            : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                            }`}
+                    >
+                        {isActive && (
+                            <motion.div
+                                layoutId={isMobile ? "activeTabBgMobile" : "activeTabBgDesktop"}
+                                className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl z-0"
+                                initial={false}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            />
+                        )}
+                        <span className="relative z-10 flex items-center gap-3">
+                            <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-white' : 'group-hover:text-indigo-300 transition-colors'} />
+                            {isExpanded && (
+                                <span className="font-medium whitespace-nowrap">
+                                    {item.label}
+                                </span>
+                            )}
+                        </span>
+                    </button>
+                );
+            })}
+        </nav>
+    );
+
+    const UserProfile = ({ isExpanded }: { isExpanded: boolean }) => (
+        <div className="p-4 border-t border-white/5">
+            <button
+                onClick={() => supabase.auth.signOut()}
+                className={`w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors group ${!isExpanded && 'justify-center'}`}
+                title="Sair do sistema"
+            >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-emerald-400 p-[2px] shrink-0">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" className="w-full h-full rounded-full bg-slate-900" />
+                </div>
+                {isExpanded && (
+                    <div className="text-left flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">Diretor Escolar</p>
+                        <p className="text-xs text-slate-500 truncate">Sair do sistema</p>
+                    </div>
+                )}
+                {isExpanded && <LogOut size={16} className="text-slate-500 group-hover:text-red-400 transition-colors shrink-0" />}
+            </button>
+        </div>
+    );
+
     return (
-        <div className="flex h-screen overflow-hidden text-slate-800">
-            {/* Barra Lateral */}
+        <div className="flex flex-col md:flex-row h-screen overflow-hidden text-slate-800 bg-slate-50">
+            {/* --- Mobile Topbar --- */}
+            <div className="md:hidden glass-sidebar flex items-center justify-between p-4 z-30 shadow-md">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-500/30">
+                        GM
+                    </div>
+                    <span className="font-bold text-lg tracking-tight text-white">
+                        GradeMaker
+                    </span>
+                </div>
+                <button
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className="p-2 text-slate-300 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+                    aria-label="Abrir Menu"
+                    title="Abrir Menu"
+                >
+                    <Menu size={24} />
+                </button>
+            </div>
+
+            {/* --- Mobile Sidebar Overlay --- */}
+            <AnimatePresence>
+                {isMobileMenuOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden"
+                        />
+                        <motion.aside
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                            className="fixed inset-y-0 left-0 w-[260px] glass-sidebar flex flex-col z-50 text-slate-300 shadow-2xl md:hidden"
+                        >
+                            <div className="p-6 flex items-center justify-between">
+                                <span className="font-bold text-xl tracking-tight text-white">Menu</span>
+                                <button
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+                                    title="Fechar Menu"
+                                    aria-label="Fechar Menu"
+                                >
+                                    <Menu size={20} />
+                                </button>
+                            </div>
+                            <NavLinks isExpanded={true} isMobile={true} />
+                            <UserProfile isExpanded={true} />
+                        </motion.aside>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* --- Desktop Sidebar --- */}
             <motion.aside
                 initial={false}
-                animate={{ width: isSidebarOpen ? 260 : 80 }}
-                className="glass-sidebar h-full flex flex-col z-20 shadow-2xl relative text-slate-300"
+                animate={{ width: isDesktopExpanded ? 260 : 80 }}
+                className="hidden md:flex glass-sidebar h-full flex-col z-20 shadow-2xl relative text-slate-300 transition-all duration-300 shrink-0"
             >
-                <div className="p-6 flex items-center justify-between">
-                    <AnimatePresence mode="wait">
-                        {isSidebarOpen && (
-                            <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, width: 0 }}
-                                className="flex items-center gap-2 overflow-hidden whitespace-nowrap"
-                            >
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30">
-                                    GM
-                                </div>
-                                <span className="font-bold text-xl tracking-tight text-white">
-                                    GradeMaker
-                                </span>
-                            </motion.div>
+                <div className="p-6 flex items-center justify-between overflow-hidden">
+                    <div className={`flex items-center gap-2 ${!isDesktopExpanded && 'justify-center w-full'}`}>
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30 shrink-0">
+                            GM
+                        </div>
+                        {isDesktopExpanded && (
+                            <span className="font-bold text-xl tracking-tight text-white whitespace-nowrap">
+                                GradeMaker
+                            </span>
                         )}
-                    </AnimatePresence>
+                    </div>
+                </div>
+
+                <div className="flex justify-end px-4 mb-2">
                     <button
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
-                        aria-label="Toggle sidebar"
-                        title="Toggle sidebar"
+                        onClick={() => setIsDesktopExpanded(!isDesktopExpanded)}
+                        className={`p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white ${!isDesktopExpanded && 'mx-auto'}`}
+                        title={isDesktopExpanded ? "Recolher menu" : "Expandir menu"}
                     >
                         <Menu size={20} />
                     </button>
                 </div>
 
-                <nav className="flex-1 px-4 space-y-2 py-4">
-                    {navItems.map((item) => {
-                        const isActive = activeTab === item.id;
-                        return (
-                            <button
-                                key={item.id}
-                                onClick={() => setActiveTab(item.id)}
-                                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 relative group overflow-hidden ${isActive
-                                    ? 'text-white shadow-lg shadow-indigo-900/20'
-                                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                                    }`}
-                            >
-                                {isActive && (
-                                    <motion.div
-                                        layoutId="activeTabBg"
-                                        className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl z-0"
-                                        initial={false}
-                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                    />
-                                )}
-                                <span className="relative z-10 flex items-center gap-3">
-                                    <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-white' : 'group-hover:text-indigo-300 transition-colors'} />
-                                    {isSidebarOpen && (
-                                        <motion.span
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ delay: 0.1 }}
-                                            className="font-medium"
-                                        >
-                                            {item.label}
-                                        </motion.span>
-                                    )}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </nav>
-
-                <div className="p-4 border-t border-white/5">
-                    <button 
-                        onClick={() => supabase.auth.signOut()}
-                        className={`w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors group ${!isSidebarOpen && 'justify-center'}`}
-                    >
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-emerald-400 p-[2px]">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" className="w-full h-full rounded-full bg-slate-900" />
-                        </div>
-                        {isSidebarOpen && (
-                            <div className="text-left flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-white truncate">Diretor Escolar</p>
-                                <p className="text-xs text-slate-500 truncate">Sair do sistema</p>
-                            </div>
-                        )}
-                        {isSidebarOpen && <LogOut size={16} className="text-slate-500 group-hover:text-red-400 transition-colors" />}
-                    </button>
-                </div>
+                <NavLinks isExpanded={isDesktopExpanded} />
+                <UserProfile isExpanded={isDesktopExpanded} />
             </motion.aside>
 
-            {/* Conteúdo Principal */}
-            <main className="flex-1 overflow-auto bg-transparent p-6 md:p-8 relative">
+            {/* --- Main Content --- */}
+            <main className="flex-1 overflow-auto bg-transparent p-4 md:p-6 lg:p-8 relative">
                 <div className="max-w-7xl mx-auto space-y-8">
-                    {/* Área de Cabeçalho definida nas páginas geralmente, mas podemos colocar um wrapper de animação comum */}
                     <motion.div
                         key={activeTab}
                         initial={{ opacity: 0, y: 10 }}

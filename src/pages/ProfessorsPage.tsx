@@ -116,8 +116,9 @@ export const ProfessorsPage = () => {
 
                             <div className="grid gap-6 max-w-2xl">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">Nome Completo</label>
+                                    <label htmlFor="new-prof-name" className="block text-sm font-bold text-slate-700 mb-2">Nome Completo</label>
                                     <input
+                                        id="new-prof-name"
                                         value={newByName}
                                         onChange={(e) => setNewByName(e.target.value)}
                                         className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow font-medium"
@@ -200,6 +201,7 @@ export const ProfessorsPage = () => {
                                 onClick={() => openInfoEditor(prof)}
                                 className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                                 title="Editar dados básicos"
+                                aria-label="Editar dados básicos"
                             >
                                 <Users size={16} />
                             </button>
@@ -262,6 +264,8 @@ export const ProfessorsPage = () => {
                                 </h3>
                                 <button
                                     onClick={() => { setEditingProfId(null); setIsEditingInfo(false); }}
+                                    title="Fechar"
+                                    aria-label="Fechar"
                                     className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
                                 >
                                     <X size={20} />
@@ -270,11 +274,13 @@ export const ProfessorsPage = () => {
 
                             <div className="p-8 space-y-6">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">Nome Completo</label>
+                                    <label htmlFor="edit-prof-name" className="block text-sm font-bold text-slate-700 mb-2">Nome Completo</label>
                                     <input
+                                        id="edit-prof-name"
                                         value={editData.name}
                                         onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                                         className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow font-medium"
+                                        placeholder="Ex: Carlos Silva"
                                     />
                                 </div>
 

@@ -64,7 +64,6 @@ export const generateSchedule = (
     };
 
     // ===== 5. Gerar lista de slots embaralhados por turma =====
-    const totalSlots = NUM_DAYS * NUM_PERIODS;
     const slotOrder: { d: number; p: number }[] = [];
     for (let d = 0; d < NUM_DAYS; d++) {
         for (let p = 0; p < NUM_PERIODS; p++) {

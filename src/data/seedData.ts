@@ -139,6 +139,7 @@ function buildSeedData(): { professors: Professor[]; subjects: Subject[]; classG
             id: generateId(),
             name,
             gradeConfig,
+            shift: 'M' as const,
         };
     });
 
@@ -187,6 +188,7 @@ export async function seedInitialData(
                 id: c.id,
                 name: c.name,
                 grade_config: c.gradeConfig,
+                shift: c.shift,
             }))
         );
         if (classError) {

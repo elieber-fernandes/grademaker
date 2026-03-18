@@ -1,7 +1,7 @@
 import type { Schedule, Professor, ClassGroup, SolverResult, Subject } from '../types';
 import { NUM_PERIODS, NUM_DAYS } from '../constants';
 
-const MAX_TIME_MS = 6000; // Timeout de 6 segundos (reduzido para resposta mais rápida)
+const MAX_TIME_MS = 10000; // Aumentado para 10 segundos
 
 // Embaralha array in-place (Fisher-Yates)
 const shuffle = <T>(arr: T[]): T[] => {
@@ -20,10 +20,12 @@ export const generateSchedule = (
     const startTime = Date.now();
     const subjectMap = new Map(subjects.map(s => [s.id, s.name]));
 
-    // ===== 1. Montar lista de aulas pendentes =====
+    // ===== 1. Montar lista de aulas pendentes e Check de Capacidade de Turno =====
     const pendingLessons: { classId: string; subjectId: string; shift: 'M' | 'V' }[] = [];
+    let totalLessonsNeededM = 0;
+    let totalLessonsNeededV = 0;
 
-    classGroups.forEach(cls => {
+    for (const cls of classGroups) {
         let classTotalLessons = 0;
         Object.entries(cls.gradeConfig).forEach(([subId, count]) => {
             classTotalLessons += count;
@@ -32,21 +34,81 @@ export const generateSchedule = (
             }
         });
 
-        // Check if class has enough slots in its shift
+        if (cls.shift === 'M') totalLessonsNeededM += classTotalLessons;
+        else totalLessonsNeededV += classTotalLessons;
+
         const maxSlots = NUM_PERIODS[cls.shift] * NUM_DAYS;
         if (classTotalLessons > maxSlots) {
             return {
                 schedule: null,
-                error: `A turma ${cls.name} precisa de ${classTotalLessons} aulas, mas só existem ${maxSlots} horários disponíveis na semana para o turno ${cls.shift === 'M' ? 'Matutino' : 'Vespertino'}.`
+                error: `A turma ${cls.name} possui mais aulas (${classTotalLessons}) do que horários disponíveis (${maxSlots}).`,
+                details: "Reduza a carga horária desta turma na Matriz Curricular."
             };
         }
-    });
+    }
 
     if (pendingLessons.length === 0) {
         return { schedule: { grid: {} }, error: null };
     }
 
-    // ===== 2. Pré-computar mapa de professores por disciplina =====
+    // ===== 2. Sanity Check: Capacidade Global de Professores por Turno =====
+    let totalSlotsAvailableM = 0;
+    let totalSlotsAvailableV = 0;
+
+    professors.forEach(p => {
+        p.availability.forEach(day => {
+            for (let i = 0; i < NUM_PERIODS['M']; i++) if (day[i]) totalSlotsAvailableM++;
+            const startV = NUM_PERIODS['M'];
+            for (let i = startV; i < startV + NUM_PERIODS['V']; i++) if (day[i]) totalSlotsAvailableV++;
+        });
+    });
+
+    if (totalLessonsNeededM > totalSlotsAvailableM) {
+        return {
+            schedule: null,
+            error: "Capacidade total insuficiente no turno Matutino.",
+            details: `A carga horária total somada de todas as turmas da manhã é de ${totalLessonsNeededM} aulas, mas a soma de todos os horários livres de todos os professores no turno da manhã é de apenas ${totalSlotsAvailableM}.`
+        };
+    }
+    if (totalLessonsNeededV > totalSlotsAvailableV) {
+        return {
+            schedule: null,
+            error: "Capacidade total insuficiente no turno Vespertino.",
+            details: `A carga horária total somada de todas as turmas da tarde é de ${totalLessonsNeededV} aulas, mas a soma de todos os horários livres de todos os professores no turno da tarde é de apenas ${totalSlotsAvailableV}.`
+        };
+    }
+
+    // ===== 3. Sanity Check: Bottleneck de Horários Específicos =====
+    // Verifica se em algum horário específico (ex: Segunda, 1º tempo) existem professores suficientes para todas as turmas
+    for (const shift of ['M', 'V'] as const) {
+        const classesInShift = classGroups.filter(c => c.shift === shift).length;
+        const totalLessonsInShift = pendingLessons.filter(l => l.shift === shift).length;
+        const totalSlotsInShift = classesInShift * NUM_PERIODS[shift] * NUM_DAYS;
+        const maxEmptySlotsInShift = totalSlotsInShift - totalLessonsInShift;
+        
+        let emptySlotsOverConstraint = 0;
+        const startP = shift === 'M' ? 0 : NUM_PERIODS['M'];
+        const endP = startP + NUM_PERIODS[shift];
+
+        for (let d = 0; d < NUM_DAYS; d++) {
+            for (let p = startP; p < endP; p++) {
+                const profsAvailable = professors.filter(prof => prof.availability[d][p]).length;
+                if (profsAvailable < classesInShift) {
+                    emptySlotsOverConstraint += (classesInShift - profsAvailable);
+                }
+            }
+        }
+
+        if (emptySlotsOverConstraint > maxEmptySlotsInShift) {
+            return {
+                schedule: null,
+                error: `Gargalo crítico no turno ${shift === 'M' ? 'Matutino' : 'Vespertino'}.`,
+                details: `Existem horários onde quase nenhum professor está disponível. Somando todas as faltas de professores em horários específicos, faltam ${emptySlotsOverConstraint} "vagas" de professor, mas as turmas só podem ter ${maxEmptySlotsInShift} horários vagos no total.`
+            };
+        }
+    }
+
+    // ===== 4. Sanity Check: Capacidade Disciplina vs Professores por TURNO =====
     const profsBySubject = new Map<string, Professor[]>();
     professors.forEach(prof => {
         prof.subjects.forEach(subId => {
@@ -55,57 +117,64 @@ export const generateSchedule = (
         });
     });
 
-    // ===== 3. Sanity Check: Capacidade Disciplina vs Professores por TURNO =====
     const subjectsInPending = Array.from(new Set(pendingLessons.map(l => l.subjectId)));
     
     for (const subId of subjectsInPending) {
         const lessonsM = pendingLessons.filter(l => l.subjectId === subId && l.shift === 'M').length;
         const lessonsV = pendingLessons.filter(l => l.subjectId === subId && l.shift === 'V').length;
-        
         const possibleProfs = profsBySubject.get(subId) || [];
         const subjectName = subjectMap.get(subId) || subId;
         
         if (possibleProfs.length === 0 && (lessonsM + lessonsV > 0)) {
             return {
                 schedule: null,
-                error: `Nenhum professor cadastrado para a disciplina ${subjectName}.`,
-                details: "Cadastre um professor ou remova a disciplina da matriz curricular."
+                error: `Faltam professores para a disciplina ${subjectName}.`,
+                details: "Cadastre pelo menos um professor habilitado para esta matéria."
             };
         }
 
-        let slotsAvailableM = 0;
-        let slotsAvailableV = 0;
-
+        let subSlotsM = 0;
+        let subSlotsV = 0;
         possibleProfs.forEach(p => {
             p.availability.forEach(day => {
-                // Slots 0-5 (M)
-                for (let i = 0; i < NUM_PERIODS['M']; i++) if (day[i]) slotsAvailableM++;
-                // Slots 6-10 (V)
-                for (let i = NUM_PERIODS['M']; i < NUM_PERIODS['M'] + NUM_PERIODS['V']; i++) if (day[i]) slotsAvailableV++;
+                for (let i = 0; i < NUM_PERIODS['M']; i++) if (day[i]) subSlotsM++;
+                const startV = NUM_PERIODS['M'];
+                for (let i = startV; i < startV + NUM_PERIODS['V']; i++) if (day[i]) subSlotsV++;
             });
         });
 
-        if (lessonsM > slotsAvailableM) {
+        if (lessonsM > subSlotsM) {
             return {
                 schedule: null,
-                error: `Capacidade insuficiente para a disciplina selecionada.`,
-                details: `A disciplina ${subjectName} precisa de ${lessonsM} aulas no turno MATUTINO, mas os professores disponíveis só possuem ${slotsAvailableM} horários livres nesse turno.`
+                error: `Carga horária impossível para a disciplina ${subjectName} (Manhã).`,
+                details: `São necessárias ${lessonsM} aulas na manhã, mas os professores habilitados para ${subjectName} só possuem ${subSlotsM} horários livres nesse turno.`
             };
         }
-        if (lessonsV > slotsAvailableV) {
+        if (lessonsV > subSlotsV) {
             return {
                 schedule: null,
-                error: `Capacidade insuficiente para a disciplina selecionada.`,
-                details: `A disciplina ${subjectName} precisa de ${lessonsV} aulas no turno VESPERTINO, mas os professores disponíveis só possuem ${slotsAvailableV} horários livres nesse turno.`
+                error: `Carga horária impossível para a disciplina ${subjectName} (Tarde).`,
+                details: `São necessárias ${lessonsV} aulas na tarde, mas os professores habilitados para ${subjectName} só possuem ${subSlotsV} horários livres nesse turno.`
             };
         }
     }
 
-    // ===== 4. Ordenar por restrição (MRV - Minimum Remaining Values) =====
+    // ===== 5. Ordenar por restrição (MRV) =====
     pendingLessons.sort((a, b) => {
         const profsA = profsBySubject.get(a.subjectId)?.length || 0;
         const profsB = profsBySubject.get(b.subjectId)?.length || 0;
-        return profsA - profsB;
+        if (profsA !== profsB) return profsA - profsB;
+        
+        // Se empate, prioriza turmas com mais carga horária (mais difíceis de encaixar)
+        const classA = classGroups.find(c => c.id === a.classId);
+        const classB = classGroups.find(c => c.id === b.classId);
+        const classWeightA = Object.values(classA?.gradeConfig || {}).reduce((sum, v) => sum + v, 0);
+        const classWeightB = Object.values(classB?.gradeConfig || {}).reduce((sum, v) => sum + v, 0);
+        if (classWeightA !== classWeightB) return classWeightB - classWeightA;
+
+        const countA = pendingLessons.filter(l => l.subjectId === a.subjectId).length;
+        const countB = pendingLessons.filter(l => l.subjectId === b.subjectId).length;
+        return countB - countA;
     });
 
     // ===== 4. Estruturas de rastreamento O(1) =====

@@ -116,13 +116,27 @@ export const GeneratorPage = () => {
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className={`p-4 rounded-2xl flex items-start gap-3 ${success ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' : 'bg-red-50 text-red-800 border border-red-100'}`}
+                            className={`p-4 rounded-2xl flex items-start gap-3 border transition-colors ${
+                                isGenerating 
+                                    ? 'bg-indigo-50 text-indigo-800 border-indigo-100/50' 
+                                    : success 
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-100' 
+                                        : 'bg-red-50 text-red-800 border-red-100'
+                            }`}
                         >
-                            {success ? <CheckCircle className="shrink-0 mt-0.5" /> : <AlertOctagon className="shrink-0 mt-0.5" />}
+                            {isGenerating ? (
+                                <Sparkles className="shrink-0 mt-0.5 animate-spin" size={20} />
+                            ) : success ? (
+                                <CheckCircle className="shrink-0 mt-0.5" />
+                            ) : (
+                                <AlertOctagon className="shrink-0 mt-0.5" />
+                            )}
                             <div>
-                                <p className="font-bold text-lg">{success ? 'Sucesso!' : 'Algo deu errado'}</p>
+                                <p className="font-bold text-lg">
+                                    {isGenerating ? 'Processando...' : success ? 'Sucesso!' : 'Algo deu errado'}
+                                </p>
                                 <p className="text-sm opacity-90">{resultMessage}</p>
-                                {errorDetails && (
+                                {!isGenerating && errorDetails && (
                                     <p className="mt-2 p-2 bg-red-100/50 rounded-lg text-xs font-medium border border-red-200/50">
                                         {errorDetails}
                                     </p>

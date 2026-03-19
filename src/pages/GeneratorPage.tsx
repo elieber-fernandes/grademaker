@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useStore } from '../store';
 import { generateSchedule } from '../lib/solver';
-import { Play, RotateCcw, CheckCircle, AlertTriangle, Sparkles, AlertOctagon } from 'lucide-react';
+import { Play, RotateCcw, CheckCircle, AlertTriangle, Sparkles, AlertOctagon, ListChecks } from 'lucide-react';
 import { findConflicts } from '../lib/validation';
 import { motion } from 'framer-motion';
 
@@ -11,8 +11,27 @@ export const GeneratorPage = () => {
     const [resultMessage, setResultMessage] = useState<string | null>(null);
     const [errorDetails, setErrorDetails] = useState<string | null>(null);
     const [success, setSuccess] = useState<boolean | null>(null);
+    const conflicts = findConflicts(schedule, professors, classGroups);
 
-    const conflicts = findConflicts(schedule, professors);
+    const missingLessons = useMemo(() => {
+        const missing: { className: string; subjectName: string; missingCount: number }[] = [];
+        classGroups.forEach(cls => {
+            Object.entries(cls.gradeConfig).forEach(([subId, required]: [string, any]) => {
+                if (required <= 0) return;
+                const scheduled = Object.values(schedule.grid).filter(
+                    (l: any) => l.classGroupId === cls.id && l.subjectId === subId
+                ).length;
+                if (scheduled < required) {
+                    missing.push({
+                        className: cls.name,
+                        subjectName: subjects.find(s => s.id === subId)?.name || subId,
+                        missingCount: (required as number) - scheduled
+                    });
+                }
+            });
+        });
+        return missing;
+    }, [classGroups, schedule.grid, subjects]);
 
     const handleGenerate = async () => {
         setIsGenerating(true);
@@ -149,49 +168,100 @@ export const GeneratorPage = () => {
                 {/* Status / Conflitos */}
                 <div className="glass-card p-0 overflow-hidden flex flex-col h-full">
                     <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                        <h3 className="font-bold text-xl text-slate-800">
-                            Diagnóstico
+                        <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
+                             Diagnóstico
                         </h3>
-                        {conflicts.length > 0 ? (
-                            <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-bold text-sm shadow-sm flex items-center gap-1.5">
-                                <AlertTriangle size={14} fill="currentColor" />
-                                {conflicts.length} Erros
-                            </span>
-                        ) : (
-                            <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-bold text-sm shadow-sm flex items-center gap-1.5">
-                                <CheckCircle size={14} fill="currentColor" />
-                                Grade Valida
-                            </span>
-                        )}
+                        <div className="flex gap-2">
+                            {conflicts.length > 0 && (
+                                <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-bold text-xs shadow-sm flex items-center gap-1.5">
+                                    <AlertTriangle size={12} fill="currentColor" />
+                                    {conflicts.length} Conflitos
+                                </span>
+                            )}
+                            {missingLessons.length > 0 && (
+                                <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-bold text-xs shadow-sm flex items-center gap-1.5">
+                                    <ListChecks size={12} />
+                                    {missingLessons.length} Pendências
+                                </span>
+                            )}
+                            {conflicts.length === 0 && missingLessons.length === 0 && (
+                                <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-bold text-xs shadow-sm flex items-center gap-1.5">
+                                    <CheckCircle size={12} fill="currentColor" />
+                                    Grade 100% Válida
+                                </span>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="flex-1 p-6 overflow-auto max-h-[500px]">
-                        {conflicts.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-300 space-y-4">
-                                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center">
-                                    <CheckCircle size={40} className="text-slate-300" />
-                                </div>
-                                <p className="font-medium">Nenhum conflito encontrado.</p>
-                            </div>
-                        ) : (
+                    <div className="flex-1 p-6 overflow-auto max-h-[600px] space-y-6">
+                        {/* Seção de Conflitos Críticos */}
+                        {conflicts.length > 0 && (
                             <div className="space-y-3">
+                                <h4 className="text-xs font-black uppercase tracking-widest text-red-500 flex items-center gap-2 mb-4">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                                    Bloqueios Críticos
+                                </h4>
                                 {conflicts.map((c, i) => (
                                     <motion.div
                                         initial={{ opacity: 0, x: 20 }}
                                         animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: i * 0.1 }}
-                                        key={i}
-                                        className="flex gap-4 p-4 bg-white border border-red-100 rounded-2xl shadow-sm text-sm"
+                                        transition={{ delay: i * 0.05 }}
+                                        key={`conf-${i}`}
+                                        className="flex gap-4 p-4 bg-red-50/30 border border-red-100 rounded-2xl shadow-sm text-sm"
                                     >
                                         <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
                                             <AlertTriangle size={20} className="text-red-600" />
                                         </div>
                                         <div>
-                                            <span className="font-bold text-slate-800 text-base block mb-0.5">Conflito na Turma {c.classGroupId}</span>
+                                            <span className="font-bold text-slate-800 text-base block mb-0.5">
+                                                {classGroups.find(g => g.id === c.classGroupId)?.name || 'Turma'}
+                                            </span>
                                             <p className="text-slate-600 leading-relaxed">{c.description}</p>
                                         </div>
                                     </motion.div>
                                 ))}
+                            </div>
+                        )}
+
+                        {/* Seção de Aulas Faltantes */}
+                        {missingLessons.length > 0 && (
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-black uppercase tracking-widest text-amber-500 flex items-center gap-2 mb-4">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                    Aulas não agendadas
+                                </h4>
+                                {missingLessons.map((m, i) => (
+                                    <motion.div
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: i * 0.05 }}
+                                        key={`miss-${i}`}
+                                        className="flex gap-4 p-3 bg-amber-50/30 border border-amber-100 rounded-xl text-sm"
+                                    >
+                                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                                            <ListChecks size={16} className="text-amber-600" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <span className="font-bold text-slate-700">{m.className}</span>
+                                                <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">-{m.missingCount} Horas</span>
+                                            </div>
+                                            <p className="text-slate-500 text-xs">{m.subjectName}</p>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+
+                        {conflicts.length === 0 && missingLessons.length === 0 && (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-300 space-y-4 py-12">
+                                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center">
+                                    <CheckCircle size={40} className="text-slate-300" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="font-bold text-slate-400">Excelente!</p>
+                                    <p className="text-sm">Nenhum conflito ou pendência.</p>
+                                </div>
                             </div>
                         )}
                     </div>

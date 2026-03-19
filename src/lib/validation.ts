@@ -1,6 +1,7 @@
-import type { Schedule, Professor } from '../types';
+import type { Schedule, Professor, ClassGroup } from '../types';
+import { NUM_PERIODS } from '../constants';
 
-export type ConflictType = 'PROFESSOR_BUSY' | 'PROFESSOR_UNAVAILABLE' | 'CLASS_BUSY';
+export type ConflictType = 'PROFESSOR_BUSY' | 'PROFESSOR_UNAVAILABLE' | 'SUBJECT_MISMATCH' | 'SHIFT_MISMATCH';
 
 export interface Conflict {
     day: number;
@@ -12,7 +13,8 @@ export interface Conflict {
 
 export const findConflicts = (
     schedule: Schedule,
-    professors: Professor[]
+    professors: Professor[],
+    classGroups: ClassGroup[]
 ): Conflict[] => {
     const conflicts: Conflict[] = [];
     const professorTimeMap = new Map<string, string>(); // Chave: "idProf-dia-período" -> "idTurma"
@@ -24,35 +26,32 @@ export const findConflicts = (
         if (parts.length < 3) return;
 
         const classId = parts[0];
-        const dayStr = parts[1];
-        const periodStr = parts[2];
-
-        const day = parseInt(dayStr);
-        const period = parseInt(periodStr);
+        const day = parseInt(parts[1]);
+        const period = parseInt(parts[2]);
 
         if (!lesson.professorId) return;
+
+        const professor = professors.find(p => p.id === lesson.professorId);
+        const currentClass = classGroups.find(c => c.id === classId);
 
         // Checagem 1: Professor já está dando aula neste horário
         const profKey = `${lesson.professorId}:::${day}:::${period}`;
         if (professorTimeMap.has(profKey)) {
             const existingClassId = professorTimeMap.get(profKey);
+            const existingClass = classGroups.find(c => c.id === existingClassId);
             conflicts.push({
                 day,
                 period,
                 classGroupId: classId,
                 type: 'PROFESSOR_BUSY',
-                description: `Professor já está alocado na turma ${existingClassId} neste horário.`
+                description: `Professor já está alocado na turma "${existingClass?.name || existingClassId}" neste horário.`
             });
-            // Também sinalizar a outra turma envolvida? Idealmente sim, mas vamos manter a detecção simples
         } else {
             professorTimeMap.set(profKey, classId);
         }
 
-        // Checagem 2: Disponibilidade do Professor
-        const professor = professors.find(p => p.id === lesson.professorId);
         if (professor) {
-            // Matriz de disponibilidade do professor[dia][período]
-            // Verificar limites antes por segurança
+            // Checagem 2: Disponibilidade do Professor
             if (professor.availability[day] && professor.availability[day][period] === false) {
                 conflicts.push({
                     day,
@@ -60,6 +59,40 @@ export const findConflicts = (
                     classGroupId: classId,
                     type: 'PROFESSOR_UNAVAILABLE',
                     description: `Professor ${professor.name} marcou indisponibilidade neste horário.`
+                });
+            }
+
+            // Checagem 3: Especialidade do Professor
+            if (!professor.subjects.includes(lesson.subjectId)) {
+                conflicts.push({
+                    day,
+                    period,
+                    classGroupId: classId,
+                    type: 'SUBJECT_MISMATCH',
+                    description: `Professor ${professor.name} não está habilitado para lecionar esta disciplina.`
+                });
+            }
+        }
+
+        // Checagem 4: Turno da Turma
+        if (currentClass) {
+            const startV = NUM_PERIODS['M'];
+            const isMorningSlot = period < startV;
+            if (currentClass.shift === 'M' && !isMorningSlot) {
+                conflicts.push({
+                    day,
+                    period,
+                    classGroupId: classId,
+                    type: 'SHIFT_MISMATCH',
+                    description: `Aula da manhã agendada em horário vespertino.`
+                });
+            } else if (currentClass.shift === 'V' && isMorningSlot) {
+                conflicts.push({
+                    day,
+                    period,
+                    classGroupId: classId,
+                    type: 'SHIFT_MISMATCH',
+                    description: `Aula da tarde agendada em horário matutino.`
                 });
             }
         }

@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from 'react';
-import { Calendar, Users, BookOpen, GraduationCap, Menu, Sparkles, LogOut, Upload, Library } from 'lucide-react';
+import { Calendar, Users, BookOpen, Menu, Sparkles, LogOut, Library } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 
@@ -17,10 +17,8 @@ export const Layout = ({ children, activeTab, setActiveTab }: LayoutProps) => {
         { id: 'dashboard', label: 'Dashboard', icon: Calendar },
         { id: 'professors', label: 'Professores', icon: Users },
         { id: 'subjects', label: 'Disciplinas', icon: BookOpen },
-        { id: 'classes', label: 'Turmas', icon: GraduationCap },
         { id: 'curriculum', label: 'Currículo', icon: Library },
         { id: 'generate', label: 'Gerar Grade', icon: Sparkles },
-        { id: 'setup', label: 'Importar', icon: Upload },
     ];
 
     const NavLinks = ({ isExpanded, isMobile = false }: { isExpanded: boolean, isMobile?: boolean }) => (

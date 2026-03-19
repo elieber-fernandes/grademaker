@@ -1,7 +1,7 @@
 import type { Schedule, Professor, ClassGroup, SolverResult, Subject } from '../types';
 import { NUM_PERIODS, NUM_DAYS } from '../constants';
 
-const MAX_TIME_MS = 10000; // Aumentado para 10 segundos
+const MAX_TIME_MS = 20000; // Aumentado para 20 segundos
 
 // Embaralha array in-place (Fisher-Yates)
 const shuffle = <T>(arr: T[]): T[] => {
@@ -20,260 +20,200 @@ export const generateSchedule = (
     const startTime = Date.now();
     const subjectMap = new Map(subjects.map(s => [s.id, s.name]));
 
-    // ===== 1. Montar lista de aulas pendentes e Check de Capacidade de Turno =====
-    const pendingLessons: { classId: string; subjectId: string; shift: 'M' | 'V' }[] = [];
-    let totalLessonsNeededM = 0;
-    let totalLessonsNeededV = 0;
+    // ===== 1. Sanity Check: Capacidade Global e Disciplina vs Professores =====
+    let totalLessonsM = 0;
+    let totalLessonsV = 0;
+    const subLessonsM = new Map<string, number>();
+    const subLessonsV = new Map<string, number>();
 
     for (const cls of classGroups) {
-        let classTotalLessons = 0;
+        let classTotal = 0;
         Object.entries(cls.gradeConfig).forEach(([subId, count]) => {
-            classTotalLessons += count;
-            for (let i = 0; i < count; i++) {
-                pendingLessons.push({ classId: cls.id, subjectId: subId, shift: cls.shift });
+            classTotal += count;
+            if (cls.shift === 'M') {
+                totalLessonsM += count;
+                subLessonsM.set(subId, (subLessonsM.get(subId) || 0) + count);
+            } else {
+                totalLessonsV += count;
+                subLessonsV.set(subId, (subLessonsV.get(subId) || 0) + count);
             }
         });
 
-        if (cls.shift === 'M') totalLessonsNeededM += classTotalLessons;
-        else totalLessonsNeededV += classTotalLessons;
-
         const maxSlots = NUM_PERIODS[cls.shift] * NUM_DAYS;
-        if (classTotalLessons > maxSlots) {
+        if (classTotal > maxSlots) {
             return {
                 schedule: null,
-                error: `A turma ${cls.name} possui mais aulas (${classTotalLessons}) do que horários disponíveis (${maxSlots}).`,
+                error: `A turma ${cls.name} possui mais aulas (${classTotal}) do que horários disponíveis (${maxSlots}).`,
                 details: "Reduza a carga horária desta turma na Matriz Curricular."
             };
         }
     }
 
-    if (pendingLessons.length === 0) {
-        return { schedule: { grid: {} }, error: null };
-    }
-
-    // ===== 2. Sanity Check: Capacidade Global de Professores por Turno =====
-    let totalSlotsAvailableM = 0;
-    let totalSlotsAvailableV = 0;
-
-    professors.forEach(p => {
-        p.availability.forEach(day => {
-            for (let i = 0; i < NUM_PERIODS['M']; i++) if (day[i]) totalSlotsAvailableM++;
-            const startV = NUM_PERIODS['M'];
-            for (let i = startV; i < startV + NUM_PERIODS['V']; i++) if (day[i]) totalSlotsAvailableV++;
-        });
-    });
-
-    if (totalLessonsNeededM > totalSlotsAvailableM) {
-        return {
-            schedule: null,
-            error: "Capacidade total insuficiente no turno Matutino.",
-            details: `A carga horária total somada de todas as turmas da manhã é de ${totalLessonsNeededM} aulas, mas a soma de todos os horários livres de todos os professores no turno da manhã é de apenas ${totalSlotsAvailableM}.`
-        };
-    }
-    if (totalLessonsNeededV > totalSlotsAvailableV) {
-        return {
-            schedule: null,
-            error: "Capacidade total insuficiente no turno Vespertino.",
-            details: `A carga horária total somada de todas as turmas da tarde é de ${totalLessonsNeededV} aulas, mas a soma de todos os horários livres de todos os professores no turno da tarde é de apenas ${totalSlotsAvailableV}.`
-        };
-    }
-
-    // ===== 3. Sanity Check: Bottleneck de Horários Específicos =====
-    // Verifica se em algum horário específico (ex: Segunda, 1º tempo) existem professores suficientes para todas as turmas
-    for (const shift of ['M', 'V'] as const) {
-        const classesInShift = classGroups.filter(c => c.shift === shift).length;
-        const totalLessonsInShift = pendingLessons.filter(l => l.shift === shift).length;
-        const totalSlotsInShift = classesInShift * NUM_PERIODS[shift] * NUM_DAYS;
-        const maxEmptySlotsInShift = totalSlotsInShift - totalLessonsInShift;
-        
-        let emptySlotsOverConstraint = 0;
-        const startP = shift === 'M' ? 0 : NUM_PERIODS['M'];
-        const endP = startP + NUM_PERIODS[shift];
-
-        for (let d = 0; d < NUM_DAYS; d++) {
-            for (let p = startP; p < endP; p++) {
-                const profsAvailable = professors.filter(prof => prof.availability[d][p]).length;
-                if (profsAvailable < classesInShift) {
-                    emptySlotsOverConstraint += (classesInShift - profsAvailable);
-                }
-            }
-        }
-
-        if (emptySlotsOverConstraint > maxEmptySlotsInShift) {
-            return {
-                schedule: null,
-                error: `Gargalo crítico no turno ${shift === 'M' ? 'Matutino' : 'Vespertino'}.`,
-                details: `Existem horários onde quase nenhum professor está disponível. Somando todas as faltas de professores em horários específicos, faltam ${emptySlotsOverConstraint} "vagas" de professor, mas as turmas só podem ter ${maxEmptySlotsInShift} horários vagos no total.`
-            };
-        }
-    }
-
-    // ===== 4. Sanity Check: Capacidade Disciplina vs Professores por TURNO =====
+    let aSlotsM = 0;
+    let aSlotsV = 0;
     const profsBySubject = new Map<string, Professor[]>();
-    professors.forEach(prof => {
-        prof.subjects.forEach(subId => {
-            if (!profsBySubject.has(subId)) profsBySubject.set(subId, []);
-            profsBySubject.get(subId)!.push(prof);
+    
+    professors.forEach(p => {
+        p.subjects.forEach(sid => {
+            if (!profsBySubject.has(sid)) profsBySubject.set(sid, []);
+            profsBySubject.get(sid)!.push(p);
+        });
+        p.availability.forEach(day => {
+            for (let i = 0; i < NUM_PERIODS['M']; i++) if (day[i]) aSlotsM++;
+            const startV = NUM_PERIODS['M'];
+            for (let i = startV; i < startV + NUM_PERIODS['V']; i++) if (day[i]) aSlotsV++;
         });
     });
 
-    const subjectsInPending = Array.from(new Set(pendingLessons.map(l => l.subjectId)));
-    
-    for (const subId of subjectsInPending) {
-        const lessonsM = pendingLessons.filter(l => l.subjectId === subId && l.shift === 'M').length;
-        const lessonsV = pendingLessons.filter(l => l.subjectId === subId && l.shift === 'V').length;
-        const possibleProfs = profsBySubject.get(subId) || [];
-        const subjectName = subjectMap.get(subId) || subId;
-        
-        if (possibleProfs.length === 0 && (lessonsM + lessonsV > 0)) {
-            return {
-                schedule: null,
-                error: `Faltam professores para a disciplina ${subjectName}.`,
-                details: "Cadastre pelo menos um professor habilitado para esta matéria."
-            };
+    if (totalLessonsM > aSlotsM) return { schedule: null, error: 'Capacidade insuficiente (Manhã)', details: `Necessário ${totalLessonsM}, Disponível ${aSlotsM}` };
+    if (totalLessonsV > aSlotsV) return { schedule: null, error: 'Capacidade insuficiente (Tarde)', details: `Necessário ${totalLessonsV}, Disponível ${aSlotsV}` };
+
+    for (const sid of Array.from(new Set([...subLessonsM.keys(), ...subLessonsV.keys()]))) {
+        const neededM = subLessonsM.get(sid) || 0;
+        const neededV = subLessonsV.get(sid) || 0;
+        const subProfs = profsBySubject.get(sid) || [];
+        const sName = subjectMap.get(sid) || sid;
+
+        if (subProfs.length === 0 && (neededM + neededV > 0)) {
+            return { schedule: null, error: `Faltam professores para ${sName}.` };
         }
 
-        let subSlotsM = 0;
-        let subSlotsV = 0;
-        possibleProfs.forEach(p => {
+        let sSlotsM = 0;
+        let sSlotsV = 0;
+        subProfs.forEach(p => {
             p.availability.forEach(day => {
-                for (let i = 0; i < NUM_PERIODS['M']; i++) if (day[i]) subSlotsM++;
+                for (let i = 0; i < NUM_PERIODS['M']; i++) if (day[i]) sSlotsM++;
                 const startV = NUM_PERIODS['M'];
-                for (let i = startV; i < startV + NUM_PERIODS['V']; i++) if (day[i]) subSlotsV++;
+                for (let i = startV; i < startV + NUM_PERIODS['V']; i++) if (day[i]) sSlotsV++;
             });
         });
 
-        if (lessonsM > subSlotsM) {
-            return {
-                schedule: null,
-                error: `Carga horária impossível para a disciplina ${subjectName} (Manhã).`,
-                details: `São necessárias ${lessonsM} aulas na manhã, mas os professores habilitados para ${subjectName} só possuem ${subSlotsM} horários livres nesse turno.`
-            };
-        }
-        if (lessonsV > subSlotsV) {
-            return {
-                schedule: null,
-                error: `Carga horária impossível para a disciplina ${subjectName} (Tarde).`,
-                details: `São necessárias ${lessonsV} aulas na tarde, mas os professores habilitados para ${subjectName} só possuem ${subSlotsV} horários livres nesse turno.`
-            };
-        }
+        if (neededM > sSlotsM) return { schedule: null, error: `Carga impossível: ${sName} (Manhã)`, details: `Necessário ${neededM}, Disponível ${sSlotsM}` };
+        if (neededV > sSlotsV) return { schedule: null, error: `Carga impossível: ${sName} (Tarde)`, details: `Necessário ${neededV}, Disponível ${sSlotsV}` };
     }
 
-    // ===== 5. Ordenar por restrição (MRV) =====
-    pendingLessons.sort((a, b) => {
-        const profsA = profsBySubject.get(a.subjectId)?.length || 0;
-        const profsB = profsBySubject.get(b.subjectId)?.length || 0;
-        if (profsA !== profsB) return profsA - profsB;
-        
-        // Se empate, prioriza turmas com mais carga horária (mais difíceis de encaixar)
-        const classA = classGroups.find(c => c.id === a.classId);
-        const classB = classGroups.find(c => c.id === b.classId);
-        const classWeightA = Object.values(classA?.gradeConfig || {}).reduce((sum, v) => sum + v, 0);
-        const classWeightB = Object.values(classB?.gradeConfig || {}).reduce((sum, v) => sum + v, 0);
-        if (classWeightA !== classWeightB) return classWeightB - classWeightA;
-
-        const countA = pendingLessons.filter(l => l.subjectId === a.subjectId).length;
-        const countB = pendingLessons.filter(l => l.subjectId === b.subjectId).length;
-        return countB - countA;
-    });
-
-    // ===== 4. Estruturas de rastreamento O(1) =====
-    const profOccupied = new Map<string, string>(); // "profId:::day:::period" -> classId
+    // ESTRUTURAS DE DADOS REUTILIZÁVEIS
+    const profOccupied = new Map<string, string>(); 
     const grid: Schedule['grid'] = {};
+    let attempts = 0;
 
-    const isSlotFreeForProf = (profId: string, day: number, period: number): boolean => {
-        return !profOccupied.has(`${profId}:::${day}:::${period}`);
+    const isSlotFree = (classId: string, profId: string, day: number, period: number): boolean => {
+        const profKey = `${profId}:::${day}:::${period}`;
+        const classKey = `${classId}:::${day}:::${period}`;
+        return !profOccupied.has(profKey) && !grid[classKey];
     };
 
     const isProfAvailable = (prof: Professor, day: number, period: number): boolean => {
         return prof.availability[day]?.[period] === true;
     };
 
-    // ===== 5. Gerar lista de slots por turno =====
     const slotOrderM: { d: number; p: number }[] = [];
-    for (let d = 0; d < NUM_DAYS; d++) {
-        for (let p = 0; p < NUM_PERIODS['M']; p++) {
-            slotOrderM.push({ d, p });
-        }
-    }
+    for (let d = 0; d < NUM_DAYS; d++) for (let p = 0; p < NUM_PERIODS['M']; p++) slotOrderM.push({ d, p });
 
     const slotOrderV: { d: number; p: number }[] = [];
-    for (let d = 0; d < NUM_DAYS; d++) {
-        for (let p = 0; p < NUM_PERIODS['V']; p++) {
-            slotOrderV.push({ d, p: p + NUM_PERIODS['M'] });
-        }
-    }
+    const startV = NUM_PERIODS['M'];
+    for (let d = 0; d < NUM_DAYS; d++) for (let p = 0; p < NUM_PERIODS['V']; p++) slotOrderV.push({ d, p: p + startV });
 
-    // ===== 6. Backtracking com timeout =====
-    let attempts = 0;
-
-    const solve = (lessonIndex: number): boolean => {
+    // FUNÇÃO PRINCIPAL DE BACKTRACKING
+    const solve = (pendingLessons: any[], lessonIndex: number): boolean => {
         if (++attempts % 1000 === 0) {
-            if (Date.now() - startTime > MAX_TIME_MS) {
-                throw new Error('TIMEOUT');
-            }
+            if (Date.now() - startTime > MAX_TIME_MS) throw new Error('TIMEOUT');
         }
 
-        if (lessonIndex >= pendingLessons.length) {
-            return true;
-        }
+        if (lessonIndex >= pendingLessons.length) return true;
 
         const task = pendingLessons[lessonIndex];
-        const possibleProfs = profsBySubject.get(task.subjectId);
+        const possibleProfs = shuffle([...(profsBySubject.get(task.subjectId) || [])]);
+        const possibleSlots = shuffle([...(task.shift === 'M' ? slotOrderM : slotOrderV)]);
 
-        if (!possibleProfs || possibleProfs.length === 0) return false;
+        for (const prof of possibleProfs) {
+            for (const { d, p } of possibleSlots) {
+                const slots = task.duration === 1 ? [p] : [p, p + 1];
+                const lastSlotInShift = task.shift === 'M' ? NUM_PERIODS['M'] - 1 : NUM_PERIODS['M'] + NUM_PERIODS['V'] - 1;
+                if (task.duration === 2 && p >= lastSlotInShift) continue;
 
-        const shuffledProfs = shuffle([...possibleProfs]);
-        const baseSlots = task.shift === 'M' ? slotOrderM : slotOrderV;
-        const shuffledSlots = shuffle([...baseSlots]);
+                const isPossible = slots.every(period => 
+                    isSlotFree(task.classId, prof.id, d, period) && 
+                    isProfAvailable(prof, d, period)
+                );
 
-        for (const prof of shuffledProfs) {
-            for (const { d, p } of shuffledSlots) {
-                const slotKey = `${task.classId}:::${d}:::${p}`;
+                if (!isPossible) continue;
 
-                if (grid[slotKey]) continue;
-                if (!isProfAvailable(prof, d, p)) continue;
-                if (!isSlotFreeForProf(prof.id, d, p)) continue;
+                slots.forEach(period => {
+                    const key = `${task.classId}:::${d}:::${period}`;
+                    grid[key] = {
+                        id: `gen-${d}-${period}-${task.classId}`,
+                        classGroupId: task.classId,
+                        professorId: prof.id,
+                        subjectId: task.subjectId
+                    };
+                    profOccupied.set(`${prof.id}:::${d}:::${period}`, task.classId);
+                });
 
-                // FAZER MOVIMENTO
-                grid[slotKey] = {
-                    id: `gen-${d}-${p}-${task.classId}`,
-                    classGroupId: task.classId,
-                    professorId: prof.id,
-                    subjectId: task.subjectId
-                };
-                profOccupied.set(`${prof.id}:::${d}:::${p}`, task.classId);
+                if (solve(pendingLessons, lessonIndex + 1)) return true;
 
-                if (solve(lessonIndex + 1)) return true;
-
-                // BACKTRACK
-                delete grid[slotKey];
-                profOccupied.delete(`${prof.id}:::${d}:::${p}`);
+                slots.forEach(period => {
+                    delete grid[`${task.classId}:::${d}:::${period}`];
+                    profOccupied.delete(`${prof.id}:::${d}:::${period}`);
+                });
             }
         }
-
         return false;
     };
 
-    // ===== 7. Tentar resolver =====
-    try {
-        if (solve(0)) {
-            return { schedule: { grid }, error: null };
+    // LOOP DE EXECUÇÃO (Stage 1: Geminada, Stage 2: Normal)
+    const stages = [
+        { useBlocks: true, attempts: 2, label: 'Preferencial (Geminada)' },
+        { useBlocks: false, attempts: 3, label: 'Reserva (Individual)' }
+    ];
+
+    for (const stage of stages) {
+        for (let i = 0; i < stage.attempts; i++) {
+            // Preparar aulas para este estágio
+            const pendingLessons: any[] = [];
+            for (const cls of classGroups) {
+                Object.entries(cls.gradeConfig).forEach(([subId, count]) => {
+                    let remaining = count;
+                    if (stage.useBlocks) {
+                        while (remaining >= 2) {
+                            pendingLessons.push({ classId: cls.id, subjectId: subId, shift: cls.shift, duration: 2 });
+                            remaining -= 2;
+                        }
+                    }
+                    while (remaining > 0) {
+                        pendingLessons.push({ classId: cls.id, subjectId: subId, shift: cls.shift, duration: 1 });
+                        remaining -= 1;
+                    }
+                });
+            }
+
+            // Ordenação (MRV)
+            pendingLessons.sort((a, b) => {
+                const profsA = profsBySubject.get(a.subjectId)?.length || 0;
+                const profsB = profsBySubject.get(b.subjectId)?.length || 0;
+                if (profsA !== profsB) return profsA - profsB;
+                if (a.duration !== b.duration) return b.duration - a.duration;
+                return 0;
+            });
+
+            // Reset de estado
+            Object.keys(grid).forEach(k => delete grid[k]);
+            profOccupied.clear();
+            attempts = 0;
+
+            try {
+                if (solve(pendingLessons, 0)) return { schedule: { grid }, error: null };
+                if (Date.now() - startTime > MAX_TIME_MS) break;
+            } catch (e) {
+                if (e instanceof Error && e.message === 'TIMEOUT') break;
+                throw e;
+            }
         }
-    } catch (e) {
-        if (e instanceof Error && e.message === 'TIMEOUT') {
-            return {
-                schedule: null,
-                error: 'Tempo excedido ao tentar encontrar uma solução.',
-                details: 'As restrições são muito complexas ou impossíveis. Tente dar mais disponibilidade aos professores ou reduzir as aulas.'
-            };
-        }
-        throw e;
     }
 
     return {
         schedule: null,
-        error: 'Não foi possível encontrar uma combinação válida para todos os horários.',
-        details: 'Revise se não há muitos professores com horários restritos ou se há muitas aulas para poucos professores.'
+        error: 'Não foi possível gerar a grade completa.',
+        details: 'As restrições de horários dos professores estão muito apertadas. Tente dar mais disponibilidade ou reduzir a carga horária das matérias.'
     };
 };

@@ -15,17 +15,24 @@ const getSegment = (name: string) => {
 export const CurriculumPage = () => {
     const { classGroups, subjects, updateClassSubjectConfig, applyConfigToClasses, updateClassShift } = useStore();
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+    const [selectedShift, setSelectedShift] = useState<'M' | 'V'>('M');
     const [showCopyMenu, setShowCopyMenu] = useState(false);
     const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
-    // Inicializar seleção
+    // Seleção automática da primeira turma do turno ao trocar Shift
     useEffect(() => {
-        if (!selectedClassId && classGroups.length > 0) {
-            setSelectedClassId(classGroups[0].id);
+        const classesInShift = classGroups.filter(c => c.shift === selectedShift);
+        if (classesInShift.length > 0) {
+            if (!selectedClassId || !classesInShift.find(c => c.id === selectedClassId)) {
+                setSelectedClassId(classesInShift[0].id);
+            }
+        } else {
+            setSelectedClassId(null);
         }
-    }, [selectedClassId, classGroups]);
+    }, [selectedShift, classGroups]);
 
     const currentClass = classGroups.find(c => c.id === selectedClassId);
+    const classesInShift = classGroups.filter(c => c.shift === selectedShift);
 
     // Gerar opções de cópia dinamicamente a partir dos segmentos reais
     const copyOptions = useMemo(() => {
@@ -77,19 +84,35 @@ export const CurriculumPage = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                    <div className="bg-white p-1 rounded-2xl border border-slate-100 shadow-sm flex items-center text-sm font-bold">
+                        <button
+                            onClick={() => setSelectedShift('M')}
+                            className={`px-4 py-2 rounded-xl transition-all ${selectedShift === 'M' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            Manhã
+                        </button>
+                        <button
+                            onClick={() => setSelectedShift('V')}
+                            className={`px-4 py-2 rounded-xl transition-all ${selectedShift === 'V' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            Tarde
+                        </button>
+                    </div>
+
                     {currentClass && (
-                        <div className="bg-white p-1 rounded-2xl border border-slate-100 shadow-sm flex items-center text-sm font-bold">
+                        <div className="bg-slate-100 p-1 rounded-xl flex items-center text-[10px] uppercase tracking-tighter font-black">
+                            <span className="px-2 py-0.5 text-slate-500">Editando Turno:</span>
                             <button
                                 onClick={() => updateClassShift(currentClass.id, 'M')}
-                                className={`px-4 py-2 rounded-xl transition-all ${currentClass.shift === 'M' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                className={`px-2 py-0.5 rounded-lg transition-all ${currentClass.shift === 'M' ? 'bg-white text-orange-500 shadow-sm' : 'text-slate-400'}`}
                             >
-                                Manhã
+                                M
                             </button>
                             <button
                                 onClick={() => updateClassShift(currentClass.id, 'V')}
-                                className={`px-4 py-2 rounded-xl transition-all ${currentClass.shift === 'V' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                className={`px-2 py-0.5 rounded-lg transition-all ${currentClass.shift === 'V' ? 'bg-white text-indigo-500 shadow-sm' : 'text-slate-400'}`}
                             >
-                                Tarde
+                                V
                             </button>
                         </div>
                     )}
@@ -103,7 +126,7 @@ export const CurriculumPage = () => {
                             aria-label="Selecionar turma"
                             title="Selecionar turma"
                         >
-                            {classGroups.map(c => (
+                            {classesInShift.map(c => (
                                 <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>

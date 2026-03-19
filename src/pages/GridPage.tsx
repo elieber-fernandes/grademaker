@@ -28,14 +28,16 @@ export const GridView = () => {
     // Obter turma selecionada
     const currentClass = classGroups.find(c => c.id === selectedClassId);
 
-    // No modo "Turma", forçamos o turno visualizado a ser o turno da turma selecionada
-    const activeShift = viewMode === 'class' ? (currentClass?.shift || 'M') : selectedShift;
+    // No modo "Turma", a turma selecionada define o turno, mas o filtro de turno também pode mudar a turma selecionada
+    const activeShift = selectedShift;
 
-    // Turmas filtradas pelo segmento E turno selecionado (para visão por dia)
-    const filteredClassGroups = classGroups.filter(c => {
+    // Turmas filtradas pelo turno selecionado
+    const classesInShift = classGroups.filter(c => c.shift === activeShift);
+
+    // Turmas filtradas pelo segmento (para visão por dia)
+    const filteredClassGroups = classesInShift.filter(c => {
         const matchesSegment = selectedSegment === 'Todos' || getSegment(c.name) === selectedSegment;
-        const matchesShift = c.shift === activeShift;
-        return matchesSegment && matchesShift;
+        return matchesSegment;
     });
 
     // Segmentos únicos
@@ -48,12 +50,18 @@ export const GridView = () => {
         }
     };
 
-    // Inicializar seleção
+    // Inicializar seleção e sincronizar com turno
     useEffect(() => {
-        if (!selectedClassId && classGroups.length > 0) {
-            setSelectedClassId(classGroups[0].id);
+        const classesInShift = classGroups.filter(c => c.shift === selectedShift);
+        if (classesInShift.length > 0) {
+            // Se a turma atual não for do turno selecionado, muda para a primeira do turno
+            if (!currentClass || currentClass.shift !== selectedShift) {
+                setSelectedClassId(classesInShift[0].id);
+            }
+        } else {
+            setSelectedClassId(null);
         }
-    }, [selectedClassId, classGroups]);
+    }, [selectedShift, classGroups, currentClass]);
 
     const handleDragEnd = (event: DragEndEvent) => {
         console.log('Drag ended', event);
@@ -215,7 +223,7 @@ export const GridView = () => {
                                     value={selectedClassId || ''}
                                     onChange={(e) => setSelectedClassId(e.target.value)}
                                 >
-                                    {classGroups.map(c => (
+                                    {classesInShift.map(c => (
                                         <option key={c.id} value={c.id}>{c.name}</option>
                                     ))}
                                 </select>
